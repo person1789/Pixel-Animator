@@ -56,7 +56,7 @@ class PixelAnimatorApp {
         this.colorPicker = new ColorPicker(this.state, this.bus);
 
         // Animation
-        this.timeline = new Timeline(this.state, this.bus, this.renderer);
+        this.timeline = new Timeline(this.state, this.bus, this.renderer, this.history);
         this.playback = new PlaybackEngine(this.state, this.bus, this.renderer, this.timeline);
         this.onionSkin = new OnionSkin(this.state, this.bus, this.renderer);
 
@@ -185,9 +185,14 @@ class PixelAnimatorApp {
         // Zoom with scroll wheel
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const anchorX = e.clientX - rect.left;
+            const anchorY = e.clientY - rect.top;
+            
             const delta = e.deltaY > 0 ? -1 : 1;
-            const newZoom = this.state.zoom + delta * Math.max(1, Math.floor(this.state.zoom / 4));
-            this.state.setZoom(Math.max(1, Math.min(64, newZoom)));
+            const deltaZoom = delta * Math.max(1, Math.floor(this.state.zoom / 4));
+            
+            this.state.zoomAt(deltaZoom, anchorX, anchorY, canvas.width, canvas.height);
             this._updateStatusBar();
         }, { passive: false });
     }
@@ -235,6 +240,27 @@ class PixelAnimatorApp {
         document.getElementById('close-color-picker')?.addEventListener('click', () => {
             this.colorPicker.hide();
         });
+
+        // Preview Resolution
+        document.getElementById('preview-resolution')?.addEventListener('change', (e) => {
+            this.state.setPreviewScale(e.target.value);
+        });
+
+        // Toggle Preview Mode
+        document.getElementById('toggle-preview-mode')?.addEventListener('click', () => {
+            this.state.togglePreviewMode();
+            this._updateLayoutUI();
+        });
+    }
+
+    _updateLayoutUI() {
+        const layout = document.getElementById('app-layout');
+        if (layout) {
+            layout.classList.toggle('layout-preview-mode', this.state.layoutPreviewMode);
+            // Re-center main view when layout changes
+            this.renderer.centerView();
+            this.bus.emit(Events.CANVAS_REDRAW);
+        }
     }
 
     _updateToolUI() {
@@ -354,12 +380,16 @@ class PixelAnimatorApp {
         });
         document.getElementById('action-zoom-in')?.addEventListener('click', () => {
             this._closeDropdowns();
-            this.state.setZoom(this.state.zoom + Math.max(1, Math.floor(this.state.zoom / 4)));
+            const canvas = document.getElementById('main-canvas');
+            const deltaZoom = Math.max(1, Math.floor(this.state.zoom / 4));
+            this.state.zoomAt(deltaZoom, null, null, canvas.width, canvas.height);
             this._updateStatusBar();
         });
         document.getElementById('action-zoom-out')?.addEventListener('click', () => {
             this._closeDropdowns();
-            this.state.setZoom(this.state.zoom - Math.max(1, Math.floor(this.state.zoom / 4)));
+            const canvas = document.getElementById('main-canvas');
+            const deltaZoom = -Math.max(1, Math.floor(this.state.zoom / 4));
+            this.state.zoomAt(deltaZoom, null, null, canvas.width, canvas.height);
             this._updateStatusBar();
         });
         document.getElementById('action-zoom-fit')?.addEventListener('click', () => {
@@ -530,6 +560,10 @@ class PixelAnimatorApp {
                     case 'i': this.toolManager.switchTool('eyedropper'); break;
                     case 'm': this.toolManager.switchTool('mirror-pen'); break;
                     case 'x': this.state.swapColors(); this.paletteManager.renderUI(); break;
+                    case 'p':
+                        this.state.togglePreviewMode();
+                        this._updateLayoutUI();
+                        break;
                     case 'g':
                         this.state.showGrid = !this.state.showGrid;
                         this.bus.emit(Events.CANVAS_REDRAW);
@@ -543,10 +577,10 @@ class PixelAnimatorApp {
                         this.playback.togglePlayPause();
                         this._updatePlayButton();
                         break;
+                    case 'backspace':
                     case 'delete':
-                        this.layerManager.clearCurrentLayer();
-                        this.layerManager.renderUI();
-                        this.timeline.renderUI();
+                        e.preventDefault();
+                        this.timeline.deleteFrame();
                         break;
                     case '=':
                     case '+':

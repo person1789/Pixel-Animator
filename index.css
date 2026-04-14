@@ -587,13 +587,27 @@ input:focus, select:focus {
     padding: 8px;
 }
 
-/* --- Preview Panel --- */
-.preview-panel__body {
+/* Preview Panel Controls */
+.preview-select {
+    padding: 2px 4px;
+    font-size: 10px;
+    background: var(--bg-deep);
+    border-color: var(--border-default);
+    color: var(--text-secondary);
+    min-width: 48px;
+    height: 24px;
+}
+
+.preview-container {
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 8px;
-    min-height: 100px;
+    overflow: auto;
+    background: var(--bg-deepest);
+    border-radius: var(--radius-sm);
+    padding: 10px;
 }
 
 #preview-canvas {
@@ -601,8 +615,44 @@ input:focus, select:focus {
     background: var(--bg-deep);
     image-rendering: pixelated;
     image-rendering: crisp-edges;
-    max-width: 100%;
-    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-med);
+}
+
+/* Layout Modes */
+.app-layout {
+    display: grid;
+    grid-template-columns: var(--toolbar-width) 1fr var(--sidebar-width);
+    grid-template-rows: 1fr;
+    height: calc(100vh - var(--menu-height) - var(--timeline-height));
+    overflow: hidden;
+    transition: all var(--transition-med);
+}
+
+.layout-preview-mode {
+    grid-template-columns: var(--toolbar-width) 240px 1fr;
+}
+
+.layout-preview-mode .canvas-area {
+    order: 2;
+    border-left: 1px solid var(--border-default);
+}
+
+.layout-preview-mode .sidebar {
+    order: 1;
+    border-left: none;
+    border-right: 1px solid var(--border-default);
+}
+
+/* Make preview panel much larger in preview mode */
+.layout-preview-mode .preview-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.layout-preview-mode .preview-panel__body {
+    flex: 1;
 }
 
 /* --- Palette Panel --- */

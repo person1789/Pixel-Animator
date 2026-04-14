@@ -193,12 +193,25 @@
         <!-- RIGHT SIDEBAR -->
         <aside id="sidebar" class="sidebar">
             <!-- Preview Window -->
-            <div class="panel preview-panel">
+            <div class="panel preview-panel" id="preview-panel">
                 <div class="panel__header">
                     <span class="panel__title">Preview</span>
+                    <div class="panel__actions">
+                        <select id="preview-resolution" class="preview-select" title="Resolution Scale">
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="2">2x</option>
+                            <option value="4">4x</option>
+                            <option value="8">8x</option>
+                            <option value="fit">Fit</option>
+                        </select>
+                        <button id="toggle-preview-mode" class="panel__action-btn" title="Toggle Preview Mode (P)">⛶</button>
+                    </div>
                 </div>
                 <div class="panel__body preview-panel__body">
-                    <canvas id="preview-canvas" width="128" height="128"></canvas>
+                    <div class="preview-container">
+                        <canvas id="preview-canvas" width="128" height="128"></canvas>
+                    </div>
                 </div>
             </div>
 

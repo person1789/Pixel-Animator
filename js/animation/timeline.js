@@ -5,10 +5,11 @@ import { Events } from '../events.js';
 import { createFrame, cloneFrame } from '../state.js';
 
 export class Timeline {
-    constructor(state, bus, renderer) {
+    constructor(state, bus, renderer, history) {
         this.state = state;
         this.bus = bus;
         this.renderer = renderer;
+        this.history = history;
 
         this.bus.on(Events.FRAME_CHANGED, () => this.renderUI());
         this.bus.on(Events.PROJECT_LOADED, () => this.renderUI());
@@ -28,14 +29,29 @@ export class Timeline {
                 data: new Uint8ClampedArray(this.state.canvasWidth * this.state.canvasHeight * 4),
             });
         }
-        this.state.frames.splice(this.state.currentFrameIndex + 1, 0, frame);
-        this.state.setCurrentFrame(this.state.currentFrameIndex + 1);
+        
+        const index = this.state.currentFrameIndex + 1;
+        this.state.frames.splice(index, 0, frame);
+        
+        if (this.history) {
+            this.history.pushFrameAction('addFrame', index, frame);
+        }
+
+        this.state.setCurrentFrame(index);
         this.renderUI();
     }
 
     deleteFrame() {
         if (this.state.frames.length <= 1) return;
-        this.state.frames.splice(this.state.currentFrameIndex, 1);
+        
+        const index = this.state.currentFrameIndex;
+        const frameToDelete = this.state.frames[index];
+
+        if (this.history) {
+            this.history.pushFrameAction('deleteFrame', index, frameToDelete);
+        }
+
+        this.state.frames.splice(index, 1);
         if (this.state.currentFrameIndex >= this.state.frames.length) {
             this.state.currentFrameIndex = this.state.frames.length - 1;
         }
@@ -45,8 +61,14 @@ export class Timeline {
 
     duplicateFrame() {
         const copy = cloneFrame(this.state.currentFrame);
-        this.state.frames.splice(this.state.currentFrameIndex + 1, 0, copy);
-        this.state.setCurrentFrame(this.state.currentFrameIndex + 1);
+        const index = this.state.currentFrameIndex + 1;
+        this.state.frames.splice(index, 0, copy);
+        
+        if (this.history) {
+            this.history.pushFrameAction('addFrame', index, copy);
+        }
+
+        this.state.setCurrentFrame(index);
         this.renderUI();
     }
 

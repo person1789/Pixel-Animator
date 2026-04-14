@@ -100,6 +100,10 @@ export class ProjectState {
         this.onionSkinFramesBefore = 2;
         this.onionSkinFramesAfter = 1;
 
+        // Preview
+        this.previewScale = 1; // 0.5, 1, 2, 4, 8, or 'fit'
+        this.layoutPreviewMode = false;
+        
         // Palette
         this.palette = this._defaultPalette();
     }
@@ -190,6 +194,71 @@ export class ProjectState {
 
     setZoom(zoom) {
         this.zoom = Math.max(1, Math.min(64, zoom));
+        this.bus.emit(Events.ZOOM_CHANGED, this.zoom);
+        this.bus.emit(Events.CANVAS_REDRAW);
+    }
+
+    setPreviewScale(scale) {
+        this.previewScale = scale === 'fit' ? 'fit' : parseFloat(scale);
+        this.bus.emit(Events.CANVAS_REDRAW);
+    }
+
+    togglePreviewMode() {
+        this.layoutPreviewMode = !this.layoutPreviewMode;
+        this.bus.emit(Events.CANVAS_REDRAW); // Ensure everything updates
+    }
+
+    /**
+     * Zoom focused on a specific screen point.
+     * @param {number} deltaZoom - The change in zoom level.
+     * @param {number} anchorX - Optional screen X to anchor zoom (if null, centers).
+     * @param {number} anchorY - Optional screen Y to anchor zoom (if null, centers).
+     * @param {number} vW - Viewport width.
+     * @param {number} vH - Viewport height.
+     */
+    zoomAt(deltaZoom, anchorX, anchorY, vW, vH) {
+        const oldZoom = this.zoom;
+        const newZoom = Math.max(1, Math.min(64, oldZoom + deltaZoom));
+        if (oldZoom === newZoom) return;
+
+        // If no anchor provided, use viewport center
+        if (anchorX === undefined || anchorX === null) anchorX = vW / 2;
+        if (anchorY === undefined || anchorY === null) anchorY = vH / 2;
+
+        // Calculate world coordinate under the anchor before zoom
+        const worldX = (anchorX - this.panX) / oldZoom;
+        const worldY = (anchorY - this.panY) / oldZoom;
+
+        // Set new zoom
+        this.zoom = newZoom;
+
+        // Calculate new pan to keep the world coordinate at the same anchor point
+        let nextPanX = anchorX - worldX * newZoom;
+        let nextPanY = anchorY - worldY * newZoom;
+
+        // --- Auto-centering / Clamping for Zoom-Out ---
+        const artW = this.canvasWidth * newZoom;
+        const artH = this.canvasHeight * newZoom;
+
+        // If art fits in viewport horizontally, center it
+        if (artW <= vW) {
+            nextPanX = (vW - artW) / 2;
+        } else {
+            // Keep art within viewport edges (no dead space)
+            nextPanX = Math.min(0, Math.max(vW - artW, nextPanX));
+        }
+
+        // If art fits in viewport vertically, center it
+        if (artH <= vH) {
+            nextPanY = (vH - artH) / 2;
+        } else {
+            // Keep art within viewport edges
+            nextPanY = Math.min(0, Math.max(vH - artH, nextPanY));
+        }
+
+        this.panX = nextPanX;
+        this.panY = nextPanY;
+
         this.bus.emit(Events.ZOOM_CHANGED, this.zoom);
         this.bus.emit(Events.CANVAS_REDRAW);
     }

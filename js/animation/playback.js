@@ -83,7 +83,44 @@ export class PlaybackEngine {
      */
     _renderPreview() {
         if (!this._previewCanvas) return;
+        
+        const container = this._previewCanvas.parentElement;
+        if (!container) return;
+
+        const { canvasWidth, canvasHeight, previewScale } = this.state;
+        let scale = previewScale;
+
+        if (scale === 'fit') {
+            const pad = 20;
+            const availableW = container.clientWidth - pad;
+            const availableH = container.clientHeight - pad;
+            scale = Math.max(1, Math.floor(Math.min(availableW / canvasWidth, availableH / canvasHeight)));
+        }
+
+        const targetW = canvasWidth * scale;
+        const targetH = canvasHeight * scale;
+
+        // Resize canvas if needed
+        if (this._previewCanvas.width !== targetW || this._previewCanvas.height !== targetH) {
+            this._previewCanvas.width = targetW;
+            this._previewCanvas.height = targetH;
+        }
+
+        const ctx = this._previewCanvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, targetW, targetH);
+
         this.renderer.renderFrameToCanvas(this.state.currentFrame, this._previewCanvas);
+        
+        // Manual draw over if scaling was needed (renderFrameToCanvas might reset size)
+        // Wait, renderer.renderFrameToCanvas sets targetCanvas size to art resolution.
+        // We need to scale it up for preview.
+        
+        const offscreen = document.createElement('canvas');
+        this.renderer.renderFrameToCanvas(this.state.currentFrame, offscreen);
+        
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(offscreen, 0, 0, targetW, targetH);
     }
 
     /**

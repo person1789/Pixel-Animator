@@ -3,6 +3,7 @@
  * Stores pixel diffs instead of full snapshots for efficiency.
  */
 import { Events } from '../events.js';
+import { cloneFrame } from '../state.js';
 
 export class HistoryManager {
     constructor(state, bus) {
@@ -40,6 +41,24 @@ export class HistoryManager {
             this._undoStack.shift();
         }
         this._redoStack = []; // Clear redo on new action
+        this.bus.emit(Events.HISTORY_CHANGED, this._getStatus());
+    }
+
+    /**
+     * Push a frame addition or deletion.
+     */
+    pushFrameAction(type, frameIndex, frameData) {
+        const command = {
+            type, // 'addFrame' | 'deleteFrame'
+            frameIndex,
+            frameData: cloneFrame(frameData),
+        };
+
+        this._undoStack.push(command);
+        if (this._undoStack.length > this._maxHistory) {
+            this._undoStack.shift();
+        }
+        this._redoStack = [];
         this.bus.emit(Events.HISTORY_CHANGED, this._getStatus());
     }
 
@@ -90,6 +109,22 @@ export class HistoryManager {
             } else {
                 layer.data.set(command.afterData);
             }
+        } else if (command.type === 'addFrame') {
+            // Undo 'addFrame' = delete it. Redo 'addFrame' = add it.
+            if (direction === 'undo') {
+                this.state.frames.splice(command.frameIndex, 1);
+            } else {
+                this.state.frames.splice(command.frameIndex, 0, cloneFrame(command.frameData));
+            }
+            this.state.setCurrentFrame(Math.min(command.frameIndex, this.state.frames.length - 1));
+        } else if (command.type === 'deleteFrame') {
+            // Undo 'deleteFrame' = add it back. Redo 'deleteFrame' = delete it.
+            if (direction === 'undo') {
+                this.state.frames.splice(command.frameIndex, 0, cloneFrame(command.frameData));
+            } else {
+                this.state.frames.splice(command.frameIndex, 1);
+            }
+            this.state.setCurrentFrame(Math.min(command.frameIndex, this.state.frames.length - 1));
         }
     }
 
