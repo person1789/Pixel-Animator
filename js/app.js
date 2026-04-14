@@ -665,7 +665,5 @@ class PixelAnimatorApp {
 }
 
 // ===== Initialize =====
-document.addEventListener('DOMContentLoaded', () => {
-    const app = new PixelAnimatorApp();
-    app.init();
-});
+const app = new PixelAnimatorApp();
+app.init();
