@@ -14,12 +14,13 @@ export function createBlankLayerData(width, height) {
 /**
  * Create a layer object.
  */
-export function createLayer(name, width, height) {
+export function createLayer(name, width, height, type = 'normal') {
     return {
         name,
         visible: true,
         locked: false,
         opacity: 1.0,
+        type,
         data: createBlankLayerData(width, height),
     };
 }
@@ -71,6 +72,12 @@ export class ProjectState {
         this.currentFrameIndex = 0;
         this.currentLayerIndex = 0;
 
+        // Frame tags
+        this.tags = [];
+
+        // Palette indexing
+        this.indexedMode = false;
+
         // Tools
         this.activeTool = 'pencil';
         this.toolOptions = {
@@ -105,6 +112,7 @@ export class ProjectState {
         this.onionSkinEnabled = false;
         this.onionSkinFramesBefore = 2;
         this.onionSkinFramesAfter = 1;
+        this.onionSkinCurve = 'linear';
 
         // Preview
         this.previewScale = 1; // 0.5, 1, 2, 4, 8, or 'fit'
@@ -201,21 +209,64 @@ export class ProjectState {
     getPixel(layerData, x, y) {
         if (x < 0 || x >= this.canvasWidth || y < 0 || y >= this.canvasHeight) return null;
         const i = (y * this.canvasWidth + x) * 4;
-        return {
-            r: layerData[i],
-            g: layerData[i + 1],
-            b: layerData[i + 2],
-            a: layerData[i + 3],
-        };
+        if (this.indexedMode) {
+            const index = layerData[i];
+            return index < this.palette.length ? { ...this.palette[index] } : { r: 0, g: 0, b: 0, a: 0 };
+        } else {
+            return {
+                r: layerData[i],
+                g: layerData[i + 1],
+                b: layerData[i + 2],
+                a: layerData[i + 3],
+            };
+        }
     }
 
     setPixel(layerData, x, y, color) {
         if (x < 0 || x >= this.canvasWidth || y < 0 || y >= this.canvasHeight) return;
         const i = (y * this.canvasWidth + x) * 4;
-        layerData[i] = color.r;
-        layerData[i + 1] = color.g;
-        layerData[i + 2] = color.b;
-        layerData[i + 3] = color.a;
+        if (this.indexedMode) {
+            const index = this.palette.findIndex(c => c.r === color.r && c.g === color.g && c.b === color.b && c.a === color.a);
+            if (index >= 0) {
+                layerData[i] = index;
+                layerData[i + 1] = 0;
+                layerData[i + 2] = 0;
+                layerData[i + 3] = 255;
+            }
+        } else {
+            layerData[i] = color.r;
+            layerData[i + 1] = color.g;
+            layerData[i + 2] = color.b;
+            layerData[i + 3] = color.a;
+        }
+    }
+
+    // --- Tag management ---
+
+    createTag(name, startFrame, endFrame) {
+        if (this.tags.some(tag => tag.name === name)) return false; // Name must be unique
+        this.tags.push({ name, startFrame, endFrame });
+        this.bus.emit(Events.TAGS_CHANGED);
+        return true;
+    }
+
+    renameTag(index, newName) {
+        if (index < 0 || index >= this.tags.length) return false;
+        if (this.tags.some((tag, i) => i !== index && tag.name === newName)) return false;
+        this.tags[index].name = newName;
+        this.bus.emit(Events.TAGS_CHANGED);
+        return true;
+    }
+
+    deleteTag(index) {
+        if (index < 0 || index >= this.tags.length) return false;
+        this.tags.splice(index, 1);
+        this.bus.emit(Events.TAGS_CHANGED);
+        return true;
+    }
+
+    getTagByName(name) {
+        return this.tags.find(tag => tag.name === name);
     }
 
     // --- State mutation helpers (all emit events) ---

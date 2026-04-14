@@ -11,15 +11,16 @@ export class ProjectIO {
     }
 
     /**
-     * Save the project to a JSON file.
+     * Save the project to localStorage for auto-save.
      */
-    save() {
+    saveToLocalStorage() {
         const project = {
             version: 1,
             canvasWidth: this.state.canvasWidth,
             canvasHeight: this.state.canvasHeight,
             fps: this.state.fps,
             palette: [...this.state.palette],
+            tags: [...this.state.tags],
             frames: this.state.frames.map(frame => ({
                 duration: frame.duration,
                 layers: frame.layers.map(layer => ({
@@ -27,6 +28,46 @@ export class ProjectIO {
                     visible: layer.visible,
                     locked: layer.locked,
                     opacity: layer.opacity,
+                    type: layer.type || 'normal',
+                    data: this._encodeData(layer.data),
+                })),
+            })),
+        };
+
+        const json = JSON.stringify(project);
+        localStorage.setItem('pixelAnimatorAutoSave', json);
+    }
+
+    /**
+     * Load from localStorage.
+     */
+    loadFromLocalStorage() {
+        const json = localStorage.getItem('pixelAnimatorAutoSave');
+        if (!json) return false;
+        try {
+            const project = JSON.parse(json);
+            this._applyProject(project);
+            return true;
+        } catch (err) {
+            console.error('Failed to load auto-save:', err);
+            return false;
+        }
+    }
+        const project = {
+            version: 1,
+            canvasWidth: this.state.canvasWidth,
+            canvasHeight: this.state.canvasHeight,
+            fps: this.state.fps,
+            palette: [...this.state.palette],
+            tags: [...this.state.tags],
+            frames: this.state.frames.map(frame => ({
+                duration: frame.duration,
+                layers: frame.layers.map(layer => ({
+                    name: layer.name,
+                    visible: layer.visible,
+                    locked: layer.locked,
+                    opacity: layer.opacity,
+                    type: layer.type || 'normal',
                     data: this._encodeData(layer.data),
                 })),
             })),
@@ -37,7 +78,7 @@ export class ProjectIO {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'pixel-animator-project.pixanim';
+        a.download = 'pixel-animator-project.pxl';
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -48,7 +89,7 @@ export class ProjectIO {
     load() {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.pixanim,.json';
+        input.accept = '.pxl,.pixanim,.json';
         input.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -76,6 +117,8 @@ export class ProjectIO {
             this.state.palette = [...project.palette];
         }
 
+        this.state.tags = project.tags || [];
+
         this.state.frames = project.frames.map(frameData => ({
             duration: frameData.duration || 100,
             layers: frameData.layers.map(layerData => ({
@@ -83,6 +126,7 @@ export class ProjectIO {
                 visible: layerData.visible !== false,
                 locked: layerData.locked || false,
                 opacity: layerData.opacity !== undefined ? layerData.opacity : 1,
+                type: layerData.type || 'normal',
                 data: this._decodeData(layerData.data, project.canvasWidth * project.canvasHeight * 4),
             })),
         }));

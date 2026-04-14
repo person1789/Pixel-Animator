@@ -105,6 +105,12 @@ export class Timeline {
         }
     }
 
+    goNext() {
+        if (this.state.currentFrameIndex < this.state.frames.length - 1) {
+            this.state.setCurrentFrame(this.state.currentFrameIndex + 1);
+        }
+    }
+
     /**
      * Render the timeline frame thumbnails.
      */

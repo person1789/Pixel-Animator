@@ -37,7 +37,7 @@ export class OnionSkin {
             if (idx >= 0) {
                 beforeFrames.push({
                     frame: this.state.frames[idx],
-                    opacity: 0.3 / i,
+                    opacity: this._calculateOpacity(i),
                 });
             }
         }
@@ -48,12 +48,22 @@ export class OnionSkin {
             if (idx < this.state.frames.length) {
                 afterFrames.push({
                     frame: this.state.frames[idx],
-                    opacity: 0.3 / i,
+                    opacity: this._calculateOpacity(i),
                 });
             }
         }
 
         this.renderer.renderWithOnionSkin(beforeFrames, afterFrames);
         return true;
+    }
+
+    _calculateOpacity(i) {
+        let opacity = 0.3;
+        if (this.state.onionSkinCurve === 'exponential') {
+            opacity /= i * i;
+        } else {
+            opacity /= i;
+        }
+        return opacity;
     }
 }

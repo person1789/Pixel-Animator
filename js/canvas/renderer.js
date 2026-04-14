@@ -125,21 +125,21 @@ export class Renderer {
     /**
      * Render a frame to a standalone canvas (for thumbnails, preview, export).
      */
-    renderFrameToCanvas(frame, targetCanvas) {
+    renderFrameToCanvas(frame, targetCanvas, excludeReference = false) {
         const { canvasWidth, canvasHeight } = this.state;
         targetCanvas.width = canvasWidth;
         targetCanvas.height = canvasHeight;
         const tctx = targetCanvas.getContext('2d');
         tctx.imageSmoothingEnabled = false;
 
-        const composited = this._compositeLayers(frame);
+        const composited = this._compositeLayers(frame, excludeReference);
         tctx.drawImage(composited, 0, 0);
         return targetCanvas;
     }
 
     // --- Private ---
 
-    _compositeLayers(frame) {
+    _compositeLayers(frame, excludeReference = false) {
         const { canvasWidth, canvasHeight } = this.state;
         this._compositeCanvas.width = canvasWidth;
         this._compositeCanvas.height = canvasHeight;
@@ -154,13 +154,22 @@ export class Renderer {
         for (let i = 0; i < frame.layers.length; i++) {
             const layer = frame.layers[i];
             if (!layer.visible) continue;
+            if (excludeReference && layer.type === 'reference') continue;
 
             // Write layer pixel data to the layer canvas
-            const imageData = new ImageData(
-                new Uint8ClampedArray(layer.data),
-                canvasWidth,
-                canvasHeight
-            );
+            let pixelData = layer.data;
+            if (this.state.indexedMode) {
+                pixelData = new Uint8ClampedArray(canvasWidth * canvasHeight * 4);
+                for (let p = 0; p < canvasWidth * canvasHeight; p++) {
+                    const index = layer.data[p * 4];
+                    const color = index < this.state.palette.length ? this.state.palette[index] : { r: 0, g: 0, b: 0, a: 0 };
+                    pixelData[p * 4] = color.r;
+                    pixelData[p * 4 + 1] = color.g;
+                    pixelData[p * 4 + 2] = color.b;
+                    pixelData[p * 4 + 3] = color.a;
+                }
+            }
+            const imageData = new ImageData(pixelData, canvasWidth, canvasHeight);
             lctx.clearRect(0, 0, canvasWidth, canvasHeight);
             lctx.putImageData(imageData, 0, 0);
 

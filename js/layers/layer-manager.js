@@ -27,6 +27,34 @@ export class LayerManager {
         this.renderUI();
     }
 
+    addReferenceLayer() {
+        const layers = this.state.currentFrame.layers;
+        const newName = `Reference ${layers.filter(l => l.type === 'reference').length + 1}`;
+        const layer = createLayer(newName, this.state.canvasWidth, this.state.canvasHeight, 'reference');
+        layers.push(layer);
+        this.state.setCurrentLayer(layers.length - 1);
+        this.bus.emit(Events.CANVAS_REDRAW);
+        this.renderUI();
+    }
+
+    loadImageForReferenceLayer(file) {
+        const layer = this.state.currentLayer;
+        if (layer.type !== 'reference') return;
+
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = this.state.canvasWidth;
+            canvas.height = this.state.canvasHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, this.state.canvasWidth, this.state.canvasHeight);
+            const imageData = ctx.getImageData(0, 0, this.state.canvasWidth, this.state.canvasHeight);
+            layer.data.set(imageData.data);
+            this.bus.emit(Events.CANVAS_REDRAW);
+        };
+        img.src = URL.createObjectURL(file);
+    }
+
     deleteLayer() {
         const layers = this.state.currentFrame.layers;
         if (layers.length <= 1) return;

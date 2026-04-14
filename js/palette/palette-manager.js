@@ -46,6 +46,19 @@ export class PaletteManager {
     }
 
     /**
+     * Load GBA palette preset.
+     */
+    loadGBAPalette() {
+        // Common GBA color palette (simplified)
+        this.state.palette = [
+            '#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff',
+            '#800000', '#008000', '#000080', '#808000', '#800080', '#008080', '#808080', '#c0c0c0'
+        ];
+        this.bus.emit(Events.PALETTE_CHANGED);
+        this.renderUI();
+    }
+
+    /**
      * Load a preset palette.
      */
     loadPreset(colors) {

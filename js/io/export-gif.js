@@ -274,7 +274,7 @@ export class GIFExporter {
         sctx.imageSmoothingEnabled = false;
 
         for (const frame of frames) {
-            this.renderer.renderFrameToCanvas(frame, tempCanvas);
+            this.renderer.renderFrameToCanvas(frame, tempCanvas, true);
             sctx.clearRect(0, 0, w, h);
             sctx.drawImage(tempCanvas, 0, 0, w, h);
             const imageData = sctx.getImageData(0, 0, w, h);

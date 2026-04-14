@@ -12,6 +12,7 @@ export class PlaybackEngine {
 
         this._animFrameId = null;
         this._lastFrameTime = 0;
+        this._playingTag = null;
 
         // Preview canvas
         this._previewCanvas = document.getElementById('preview-canvas');
@@ -47,6 +48,16 @@ export class PlaybackEngine {
     stop() {
         this.pause();
         this.state.setCurrentFrame(0);
+        this._playingTag = null;
+    }
+
+    playTag(tagName) {
+        const tag = this.state.getTagByName(tagName);
+        if (!tag) return;
+
+        this._playingTag = tag;
+        this.state.setCurrentFrame(tag.startFrame);
+        this.play();
     }
 
     _tick(timestamp) {
@@ -60,12 +71,18 @@ export class PlaybackEngine {
 
             // Advance frame
             let nextFrame = this.state.currentFrameIndex + 1;
-            if (nextFrame >= this.state.frames.length) {
-                if (this.state.loopPlayback) {
-                    nextFrame = 0;
-                } else {
-                    this.pause();
-                    return;
+            if (this._playingTag) {
+                if (nextFrame > this._playingTag.endFrame) {
+                    nextFrame = this._playingTag.startFrame;
+                }
+            } else {
+                if (nextFrame >= this.state.frames.length) {
+                    if (this.state.loopPlayback) {
+                        nextFrame = 0;
+                    } else {
+                        this.pause();
+                        return;
+                    }
                 }
             }
             this.state.setCurrentPlayingFrame(nextFrame);

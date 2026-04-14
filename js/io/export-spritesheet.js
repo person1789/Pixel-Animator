@@ -51,7 +51,7 @@ export class SpriteSheetExporter {
             const x = col * (fw + padding);
             const y = row * (fh + padding);
 
-            this.renderer.renderFrameToCanvas(frame, tempCanvas);
+            this.renderer.renderFrameToCanvas(frame, tempCanvas, true);
             ctx.drawImage(tempCanvas, x, y, fw, fh);
 
             frameData.push({
@@ -95,4 +95,51 @@ export class SpriteSheetExporter {
             URL.revokeObjectURL(url);
         }
     }
-}
+
+    /**
+     * Export tiles — automatically slice into 16x16 or 32x32 tiles.
+     * @param {object} options
+     * @param {number} options.tileSize - 16 or 32
+     */
+    exportTiles(options = {}) {
+        const { tileSize = 16 } = options;
+        const { canvasWidth, canvasHeight, frames } = this.state;
+
+        if (canvasWidth % tileSize !== 0 || canvasHeight % tileSize !== 0) {
+            alert(`Canvas must be divisible by ${tileSize} for tile export.`);
+            return;
+        }
+
+        const tilesX = canvasWidth / tileSize;
+        const tilesY = canvasHeight / tileSize;
+
+        frames.forEach((frame, frameIndex) => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvasWidth;
+            tempCanvas.height = canvasHeight;
+            this.renderer.renderFrameToCanvas(frame, tempCanvas, true);
+
+            for (let ty = 0; ty < tilesY; ty++) {
+                for (let tx = 0; tx < tilesX; tx++) {
+                    const tileCanvas = document.createElement('canvas');
+                    tileCanvas.width = tileSize;
+                    tileCanvas.height = tileSize;
+                    const tctx = tileCanvas.getContext('2d');
+                    tctx.drawImage(
+                        tempCanvas,
+                        tx * tileSize, ty * tileSize, tileSize, tileSize,
+                        0, 0, tileSize, tileSize
+                    );
+
+                    tileCanvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `tile_f${frameIndex}_x${tx}_y${ty}.png`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }, 'image/png');
+                }
+            }
+        });
+    }

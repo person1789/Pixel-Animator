@@ -9,11 +9,13 @@ export class PencilTool {
         this.history = historyManager;
         this._lastPos = null;
         this._beforeData = null;
+        this._drawnPixels = new Set();
     }
 
     onMouseDown(pos) {
         this._beforeData = new Uint8ClampedArray(this.state.currentLayer.data);
         this._lastPos = pos;
+        this._drawnPixels = new Set();
         this._drawPixel(pos.x, pos.y);
     }
 
@@ -38,7 +40,11 @@ export class PencilTool {
     }
 
     _drawPixel(x, y) {
-        this.state.setPixel(this.state.currentLayer.data, x, y, this.state.primaryColor);
+        const key = `${x},${y}`;
+        if (!this._drawnPixels.has(key)) {
+            this.state.setPixel(this.state.currentLayer.data, x, y, this.state.primaryColor);
+            this._drawnPixels.add(key);
+        }
     }
 
     _bresenhamLine(x0, y0, x1, y1) {

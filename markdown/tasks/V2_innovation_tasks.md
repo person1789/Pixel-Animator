@@ -1,16 +1,16 @@
 # Task List: Pixel Animator V2 Innovation
 
-- [ ] **Core Art Refinement**
-    - [ ] Implement `PixelPerfect` brush smoothing algorithm
-    - [ ] Build `SymmetryManager` for Real-time horizontal/vertical mirroring
-    - [ ] Create `DitherManager` with pattern selection UI
-- [ ] **Animation Engine (Pro)**
-    - [ ] Implement `FrameTagging` system (Create, Rename, Delete tags)
-    - [ ] Update `Playback` to support "Play Tag" loops
-    - [ ] Upgrade `OnionSkin` with depth-based tinting (Red/Green)
-- [ ] **Export & Game Pipelines**
-    - [ ] Implement `TileSplicer` for grid-based export (16x16, 32x32)
-    - [ ] Create `.pxl` Layered Project saving
-- [ ] **Workflow Helpers**
-    - [ ] Add `ReferenceLayer` support (Opacity and Image upload)
-    - [ ] Implement `IndexedColorMode` (repainting linked pixels)
+- [x] **Core Art Refinement**
+    - [x] Implement `PixelPerfect` brush smoothing algorithm
+    - [x] Build `SymmetryManager` for Real-time horizontal/vertical mirroring
+    - [x] Create `DitherManager` with pattern selection UI
+- [x] **Animation Engine (Pro)**
+    - [x] Implement `FrameTagging` system (Create, Rename, Delete tags)
+    - [x] Update `Playback` to support "Play Tag" loops
+    - [x] Upgrade `OnionSkin` with depth-based tinting (Red/Green)
+- [x] **Export & Game Pipelines**
+    - [x] Implement `TileSplicer` for grid-based export (16x16, 32x32)
+    - [x] Create `.pxl` Layered Project saving
+- [x] **Workflow Helpers**
+    - [x] Add `ReferenceLayer` support (Opacity and Image upload)
+    - [x] Implement `IndexedColorMode` (repainting linked pixels)

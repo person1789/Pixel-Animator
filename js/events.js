@@ -76,4 +76,5 @@ export const Events = {
     SELECTION_CHANGED: 'selectionChanged',
     ONION_SKIN_CHANGED: 'onionSkinChanged',
     PLAYBACK_STATE_CHANGED: 'playbackStateChanged',
+    TAGS_CHANGED: 'tagsChanged',
 };

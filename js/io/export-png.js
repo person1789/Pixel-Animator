@@ -19,7 +19,7 @@ export class PNGExporter {
         const srcCanvas = document.createElement('canvas');
         srcCanvas.width = canvasWidth;
         srcCanvas.height = canvasHeight;
-        this.renderer.renderFrameToCanvas(frame, srcCanvas);
+        this.renderer.renderFrameToCanvas(frame, srcCanvas, true);
 
         // Scale up
         const exportCanvas = document.createElement('canvas');

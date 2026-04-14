@@ -55,19 +55,19 @@ This plan outlines the next evolution of Pixel Animator, moving beyond basic dra
 ## Implementation Phases
 
 ### Phase 1: Industry Foundation
--   [ ] Implement Pixel-Perfect Brush Smoothing.
--   [ ] Add Frame Tagging and playback range selection.
--   [ ] Expand Layer capabilities (Reference Layer, Opacity).
+-   [x] Implement Pixel-Perfect Brush Smoothing.
+-   [x] Add Frame Tagging and playback range selection.
+-   [x] Expand Layer capabilities (Reference Layer, Opacity).
 
 ### Phase 2: Pro Art Tools
--   [ ] Implement Real-time Symmetry (Mirror Axes).
--   [ ] Develop the Dither & Pattern Brush system.
--   [ ] Add Automatic Tile Slicing for exports.
+-   [x] Implement Real-time Symmetry (Mirror Axes).
+-   [x] Develop the Dither & Pattern Brush system.
+-   [x] Add Automatic Tile Slicing for exports.
 
 ### Phase 3: GBA Optimization & Delivery
--   [ ] Implement Palette Indexing and GBA Palette Presets.
--   [ ] Create the `.pxl` Layered Project Export/Import.
--   [ ] Finalize UI for "Spotify Minimalist" workflow.
+-   [x] Implement Palette Indexing and GBA Palette Presets.
+-   [x] Create the `.pxl` Layered Project Export/Import.
+-   [x] Finalize UI for "Spotify Minimalist" workflow.
 
 ---
 

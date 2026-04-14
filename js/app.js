@@ -69,6 +69,7 @@ class PixelAnimatorApp {
         this.gifExporter = new GIFExporter(this.state, this.renderer);
         this.spriteSheetExporter = new SpriteSheetExporter(this.state, this.renderer);
         this.projectIO = new ProjectIO(this.state, this.bus);
+        this._autoSaveTimer = setInterval(() => this.projectIO.saveToLocalStorage(), 60000);
         this.imageImporter = new ImageImporter(this.state, this.bus);
 
         // Open dropdown tracking
@@ -584,6 +585,10 @@ class PixelAnimatorApp {
                     case 'v': this.toolManager.switchTool('move'); break;
                     case 'i': this.toolManager.switchTool('eyedropper'); break;
                     case 'm': this.toolManager.switchTool('mirror-pen'); break;
+                    case '[': this.state.moveLayer(this.state.currentLayerIndex, Math.max(0, this.state.currentLayerIndex - 1)); break;
+                    case ']': this.state.moveLayer(this.state.currentLayerIndex, Math.min(this.state.currentFrame.layers.length - 1, this.state.currentLayerIndex + 1)); break;
+                    case '<': this.timeline.goPrev(); break;
+                    case '>': this.timeline.goNext(); break;
                     case 'x': this.state.swapColors(); this.paletteManager.renderUI(); break;
                     case 'p':
                         this.state.togglePreviewMode();
