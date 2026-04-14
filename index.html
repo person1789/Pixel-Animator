@@ -15,10 +15,10 @@
     <header id="menu-bar" class="menu-bar">
         <div class="menu-bar__brand">
             <svg class="menu-bar__logo" viewBox="0 0 24 24" width="22" height="22" fill="none">
-                <rect x="2" y="2" width="8" height="8" rx="1" fill="#58a6ff"/>
-                <rect x="14" y="2" width="8" height="8" rx="1" fill="#bc8cff"/>
-                <rect x="2" y="14" width="8" height="8" rx="1" fill="#3fb950"/>
-                <rect x="14" y="14" width="8" height="8" rx="1" fill="#ff6e59"/>
+                <rect x="2" y="2" width="8" height="8" rx="1" fill="var(--text-secondary)"/>
+                <rect x="14" y="2" width="8" height="8" rx="1" fill="var(--text-muted)"/>
+                <rect x="2" y="14" width="8" height="8" rx="1" fill="var(--border-default)"/>
+                <rect x="14" y="14" width="8" height="8" rx="1" fill="var(--text-primary)"/>
             </svg>
             <span class="menu-bar__title">Pixel Animator</span>
         </div>
@@ -37,67 +37,67 @@
     <!-- ===== DROPDOWN MENUS ===== -->
     <div id="dropdown-file" class="dropdown-menu" style="display:none;">
         <button class="dropdown-item" id="action-new-project">
-            <span class="dropdown-item__icon">📄</span> New Project…
+            <span class="dropdown-item__icon">[+]</span> New Project…
             <span class="dropdown-item__shortcut">Ctrl+N</span>
         </button>
         <button class="dropdown-item" id="action-save-project">
-            <span class="dropdown-item__icon">💾</span> Save Project
+            <span class="dropdown-item__icon">[S]</span> Save Project
             <span class="dropdown-item__shortcut">Ctrl+S</span>
         </button>
         <button class="dropdown-item" id="action-load-project">
-            <span class="dropdown-item__icon">📂</span> Open Project…
+            <span class="dropdown-item__icon">[O]</span> Open Project…
             <span class="dropdown-item__shortcut">Ctrl+O</span>
         </button>
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" id="action-import-image">
-            <span class="dropdown-item__icon">🖼️</span> Import Image…
+            <span class="dropdown-item__icon">[I]</span> Import Image…
         </button>
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" id="action-export-png">
-            <span class="dropdown-item__icon">🖼️</span> Export as PNG…
+            <span class="dropdown-item__icon">[E]</span> Export as PNG…
         </button>
         <button class="dropdown-item" id="action-export-gif">
-            <span class="dropdown-item__icon">🎞️</span> Export as GIF…
+            <span class="dropdown-item__icon">[G]</span> Export as GIF…
         </button>
         <button class="dropdown-item" id="action-export-spritesheet">
-            <span class="dropdown-item__icon">🧩</span> Export Sprite Sheet…
+            <span class="dropdown-item__icon">[X]</span> Export Sprite Sheet…
         </button>
     </div>
     <div id="dropdown-edit" class="dropdown-menu" style="display:none;">
         <button class="dropdown-item" id="action-undo">
-            <span class="dropdown-item__icon">↩️</span> Undo
+            <span class="dropdown-item__icon">&lt;~</span> Undo
             <span class="dropdown-item__shortcut">Ctrl+Z</span>
         </button>
         <button class="dropdown-item" id="action-redo">
-            <span class="dropdown-item__icon">↪️</span> Redo
+            <span class="dropdown-item__icon">~&gt;</span> Redo
             <span class="dropdown-item__shortcut">Ctrl+Shift+Z</span>
         </button>
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" id="action-clear-layer">
-            <span class="dropdown-item__icon">🗑️</span> Clear Layer
+            <span class="dropdown-item__icon">[X]</span> Clear Layer
             <span class="dropdown-item__shortcut">Del</span>
         </button>
     </div>
     <div id="dropdown-view" class="dropdown-menu" style="display:none;">
         <button class="dropdown-item" id="action-toggle-grid">
-            <span class="dropdown-item__icon">⊞</span> Toggle Grid
+            <span class="dropdown-item__icon">[#]</span> Toggle Grid
             <span class="dropdown-item__shortcut">G</span>
         </button>
         <button class="dropdown-item" id="action-toggle-onion">
-            <span class="dropdown-item__icon">🧅</span> Toggle Onion Skin
+            <span class="dropdown-item__icon">[o]</span> Toggle Onion Skin
             <span class="dropdown-item__shortcut">O</span>
         </button>
         <div class="dropdown-divider"></div>
         <button class="dropdown-item" id="action-zoom-in">
-            <span class="dropdown-item__icon">🔍</span> Zoom In
+            <span class="dropdown-item__icon">[+]</span> Zoom In
             <span class="dropdown-item__shortcut">+</span>
         </button>
         <button class="dropdown-item" id="action-zoom-out">
-            <span class="dropdown-item__icon">🔍</span> Zoom Out
+            <span class="dropdown-item__icon">[-]</span> Zoom Out
             <span class="dropdown-item__shortcut">-</span>
         </button>
         <button class="dropdown-item" id="action-zoom-fit">
-            <span class="dropdown-item__icon">⊡</span> Fit to View
+            <span class="dropdown-item__icon">[F]</span> Fit to View
             <span class="dropdown-item__shortcut">0</span>
         </button>
     </div>
@@ -128,6 +128,23 @@
             <div class="modal-dialog__footer">
                 <button class="btn btn--ghost" id="new-project-cancel">Cancel</button>
                 <button class="btn btn--primary" id="new-project-create">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== RENAME LAYER DIALOG ===== -->
+    <div id="rename-layer-dialog" class="modal-overlay" style="display:none;">
+        <div class="modal-dialog">
+            <h2 class="modal-dialog__title">Rename Layer</h2>
+            <div class="modal-dialog__body">
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" id="rename-layer-input" class="form-input" placeholder="Layer name">
+                </div>
+            </div>
+            <div class="modal-dialog__footer">
+                <button class="btn btn--ghost" id="rename-layer-cancel">Cancel</button>
+                <button class="btn btn--primary" id="rename-layer-save">Save</button>
             </div>
         </div>
     </div>
@@ -177,11 +194,12 @@
             </div>
             <!-- Color swatches at bottom -->
             <div class="toolbar__colors">
-                <div class="color-swatch-stack">
-                    <div id="secondary-color" class="color-swatch color-swatch--secondary" title="Secondary Color"></div>
-                    <div id="primary-color" class="color-swatch color-swatch--primary" title="Primary Color"></div>
+                <div class="color-slots">
+                    <div id="color-slot-0" class="color-slot" title="Color Slot 1"></div>
+                    <div id="color-slot-1" class="color-slot" title="Color Slot 2"></div>
+                    <div id="color-slot-2" class="color-slot" title="Color Slot 3"></div>
                 </div>
-                <button id="swap-colors" class="swap-btn" title="Swap Colors (X)">⇄</button>
+                <button id="swap-colors" class="swap-btn" title="Cycle Colors (X)">⤨</button>
             </div>
         </aside>
 
@@ -205,7 +223,7 @@
                             <option value="8">8x</option>
                             <option value="fit">Fit</option>
                         </select>
-                        <button id="toggle-preview-mode" class="panel__action-btn" title="Toggle Preview Mode (P)">⛶</button>
+                        <button id="toggle-preview-mode" class="panel__action-btn" title="Toggle Preview Mode (P)">⊠</button>
                     </div>
                 </div>
                 <div class="panel__body preview-panel__body">
@@ -219,7 +237,7 @@
             <div class="panel palette-panel">
                 <div class="panel__header">
                     <span class="panel__title">Palette</span>
-                    <button id="edit-palette-color" class="panel__action-btn" title="Edit Color">✎</button>
+                    <button id="edit-palette-color" class="panel__action-btn" title="Edit Color">⚙</button>
                 </div>
                 <div class="panel__body">
                     <div id="palette-grid" class="palette-grid"></div>
@@ -230,7 +248,7 @@
             <div id="color-picker-panel" class="panel color-picker-panel" style="display:none;">
                 <div class="panel__header">
                     <span class="panel__title">Color Picker</span>
-                    <button id="close-color-picker" class="panel__action-btn" title="Close">✕</button>
+                    <button id="close-color-picker" class="panel__action-btn" title="Close">×</button>
                 </div>
                 <div class="panel__body">
                     <div id="color-picker-area" class="color-picker">
@@ -268,8 +286,8 @@
                 <div class="panel__header">
                     <span class="panel__title">Layers</span>
                     <div class="panel__actions">
-                        <button id="add-layer" class="panel__action-btn" title="Add Layer">+</button>
-                        <button id="delete-layer" class="panel__action-btn" title="Delete Layer">🗑</button>
+                        <button id="add-layer" class="panel__action-btn" title="Add Layer">＋</button>
+                        <button id="delete-layer" class="panel__action-btn" title="Delete Layer">－</button>
                         <button id="duplicate-layer" class="panel__action-btn" title="Duplicate Layer">⧉</button>
                         <button id="merge-layer-down" class="panel__action-btn" title="Merge Down">⤓</button>
                     </div>
@@ -284,27 +302,30 @@
     <!-- ===== BOTTOM TIMELINE ===== -->
     <footer id="timeline" class="timeline">
         <div class="timeline__controls">
-            <button id="anim-first" class="timeline-btn" title="First Frame">⏮</button>
-            <button id="anim-prev" class="timeline-btn" title="Previous Frame">⏪</button>
-            <button id="anim-play" class="timeline-btn timeline-btn--play" title="Play/Pause (Space)">▶</button>
-            <button id="anim-next" class="timeline-btn" title="Next Frame">⏩</button>
-            <button id="anim-last" class="timeline-btn" title="Last Frame">⏭</button>
+            <button id="anim-first" class="timeline-btn" title="First Frame">|&lt;</button>
+            <button id="anim-prev" class="timeline-btn" title="Previous Frame">&lt;&lt;</button>
+            <button id="anim-play" class="timeline-btn timeline-btn--play" title="Play/Pause (Space)">Play</button>
+            <button id="anim-next" class="timeline-btn" title="Next Frame">&gt;&gt;</button>
+            <button id="anim-last" class="timeline-btn" title="Last Frame">&gt;|</button>
             <div class="timeline__fps">
                 <label class="timeline__fps-label">FPS</label>
                 <input type="number" id="fps-input" class="fps-input" min="1" max="60" value="12">
             </div>
-            <button id="toggle-loop" class="timeline-btn timeline-btn--active" title="Loop">🔁</button>
-            <button id="toggle-onion-skin" class="timeline-btn" title="Onion Skin (O)">🧅</button>
+            <button id="toggle-loop" class="timeline-btn timeline-btn--active" title="Loop">@</button>
+            <button id="toggle-onion-skin" class="timeline-btn" title="Onion Skin (O)">[o]</button>
         </div>
         <div id="timeline-frames" class="timeline__frames">
             <!-- Frame thumbnails rendered dynamically -->
         </div>
         <div class="timeline__frame-actions">
-            <button id="add-frame" class="timeline-btn" title="Add Frame">+</button>
-            <button id="delete-frame" class="timeline-btn" title="Delete Frame">🗑</button>
+            <button id="add-frame" class="timeline-btn" title="Add Frame">＋</button>
+            <button id="delete-frame" class="timeline-btn" title="Delete Frame">－</button>
             <button id="duplicate-frame" class="timeline-btn" title="Duplicate Frame">⧉</button>
         </div>
     </footer>
+
+    <!-- ===== CONTEXT MENU ===== -->
+    <div id="context-menu" class="context-menu" style="display:none;"></div>
 
     <script type="module" src="js/app.js"></script>
 </body>

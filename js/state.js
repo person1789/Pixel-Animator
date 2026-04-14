@@ -80,9 +80,13 @@ export class ProjectState {
             shapeMode: 'outline',      // outline | filled
         };
 
-        // Colors
-        this.primaryColor = { r: 255, g: 255, b: 255, a: 255 };
-        this.secondaryColor = { r: 0, g: 0, b: 0, a: 0 };
+        // Colors (up to 3 slots)
+        this.colors = [
+            { r: 255, g: 255, b: 255, a: 255 }, // Slot 0 (Default Primary)
+            { r: 0, g: 0, b: 0, a: 255 },       // Slot 1 (Default Secondary)
+            { r: 255, g: 110, b: 89, a: 255 }    // Slot 2 (Default Tertiary/Accent)
+        ];
+        this.activeColorIndex = 0;
 
         // Viewport
         this.zoom = 16; // pixels on screen per art pixel
@@ -90,12 +94,14 @@ export class ProjectState {
         this.panY = 0;
         this.showGrid = true;
 
-        // Animation
-        this.fps = 12;
+        // Animation state
+        this._currentFrameIndex = 0;
+        this.selectedFrameIndex = 0;
+        this.selectedLayerIndex = 0;
         this.isPlaying = false;
-        this.loopPlayback = true;
-
-        // Onion skin
+        
+        // Settings
+        this.showGrid = true;
         this.onionSkinEnabled = false;
         this.onionSkinFramesBefore = 2;
         this.onionSkinFramesAfter = 1;
@@ -111,7 +117,71 @@ export class ProjectState {
     // --- Convenience getters ---
 
     get currentFrame() {
-        return this.frames[this.currentFrameIndex];
+        return this.frames[this.selectedFrameIndex];
+    }
+
+    get currentFrameIndex() {
+        return this._currentFrameIndex;
+    }
+
+    setSelectedFrame(index, syncPlaying = true) {
+        this.selectedFrameIndex = Math.max(0, Math.min(this.frames.length - 1, index));
+        if (syncPlaying) {
+            this._currentFrameIndex = this.selectedFrameIndex;
+        }
+        this.bus.emit(Events.FRAME_CHANGED, this.selectedFrameIndex);
+        this.bus.emit(Events.CANVAS_REDRAW);
+    }
+
+    setCurrentPlayingFrame(index) {
+        this._currentFrameIndex = Math.max(0, Math.min(this.frames.length - 1, index));
+        this.bus.emit(Events.CANVAS_REDRAW); // Only redraw for playback
+    }
+
+    setSelectedLayer(index) {
+        this.selectedLayerIndex = Math.max(0, Math.min(this.currentFrame.layers.length - 1, index));
+        this.currentLayerIndex = this.selectedLayerIndex; // Sync drawing layer for now
+        this.bus.emit(Events.LAYER_CHANGED, this.selectedLayerIndex);
+        this.bus.emit(Events.CANVAS_REDRAW);
+    }
+
+    moveFrame(from, to) {
+        if (from === to) return;
+        const [frame] = this.frames.splice(from, 1);
+        this.frames.splice(to, 0, frame);
+        
+        // Sync selection to followed item
+        if (this.selectedFrameIndex === from) this.selectedFrameIndex = to;
+        if (this._currentFrameIndex === from) this._currentFrameIndex = to;
+        
+        this.bus.emit(Events.FRAME_CHANGED);
+        this.bus.emit(Events.CANVAS_REDRAW);
+    }
+
+    moveLayer(from, to) {
+        const layers = this.currentFrame.layers;
+        if (from === to) return;
+        const [layer] = layers.splice(from, 1);
+        layers.splice(to, 0, layer);
+        
+        // Sync selection to followed item
+        if (this.selectedLayerIndex === from) this.selectedLayerIndex = to;
+        this.currentLayerIndex = this.selectedLayerIndex;
+
+        this.bus.emit(Events.LAYER_CHANGED);
+        this.bus.emit(Events.CANVAS_REDRAW);
+    }
+
+    set currentFrameIndex(idx) {
+        this._currentFrameIndex = idx;
+    }
+
+    get selectedFrame() {
+        return this.frames[this.selectedFrameIndex];
+    }
+
+    get currentPlayingFrame() {
+        return this.frames[this._currentFrameIndex];
     }
 
     get currentLayer() {
@@ -155,24 +225,37 @@ export class ProjectState {
         this.bus.emit(Events.TOOL_CHANGED, toolName);
     }
 
+    get primaryColor() {
+        return this.colors[this.activeColorIndex];
+    }
+
+    get secondaryColor() {
+        // Return first non-active color
+        return this.colors[(this.activeColorIndex + 1) % 3];
+    }
+
+    setActiveColorIndex(index) {
+        this.activeColorIndex = Math.max(0, Math.min(2, index));
+        this.bus.emit(Events.COLOR_CHANGED);
+    }
+
     setPrimaryColor(color) {
-        this.primaryColor = { ...color };
-        this.bus.emit(Events.COLOR_CHANGED, { primary: this.primaryColor });
+        this.colors[this.activeColorIndex] = { ...color };
+        this.bus.emit(Events.COLOR_CHANGED);
     }
 
     setSecondaryColor(color) {
-        this.secondaryColor = { ...color };
-        this.bus.emit(Events.COLOR_CHANGED, { secondary: this.secondaryColor });
+        const idx = (this.activeColorIndex + 1) % 3;
+        this.colors[idx] = { ...color };
+        this.bus.emit(Events.COLOR_CHANGED);
     }
 
     swapColors() {
-        const tmp = this.primaryColor;
-        this.primaryColor = this.secondaryColor;
-        this.secondaryColor = tmp;
-        this.bus.emit(Events.COLOR_CHANGED, {
-            primary: this.primaryColor,
-            secondary: this.secondaryColor,
-        });
+        const idxS = (this.activeColorIndex + 1) % 3;
+        const tmp = this.colors[this.activeColorIndex];
+        this.colors[this.activeColorIndex] = this.colors[idxS];
+        this.colors[idxS] = tmp;
+        this.bus.emit(Events.COLOR_CHANGED);
     }
 
     setCurrentFrame(index) {

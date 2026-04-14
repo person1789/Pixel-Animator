@@ -134,10 +134,7 @@ input:focus, select:focus {
 .menu-bar__title {
     font-weight: 600;
     font-size: 14px;
-    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-primary);
     letter-spacing: 0.5px;
 }
 
@@ -269,10 +266,7 @@ input:focus, select:focus {
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 16px;
-    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-primary);
 }
 
 .modal-dialog__body {
@@ -318,14 +312,14 @@ input:focus, select:focus {
 }
 
 .btn--primary {
-    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-    color: #fff;
-    box-shadow: var(--shadow-glow-cyan);
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
 }
 
 .btn--primary:hover {
-    filter: brightness(1.1);
-    box-shadow: var(--shadow-glow-purple);
+    background: var(--bg-hover);
+    border-color: var(--text-secondary);
 }
 
 .btn--ghost {
@@ -386,9 +380,9 @@ input:focus, select:focus {
 }
 
 .tool-btn.active {
-    background: rgba(88, 166, 255, 0.15);
-    color: var(--accent-cyan);
-    box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.3);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px var(--border-default);
 }
 
 .tool-btn.active::after {
@@ -399,9 +393,8 @@ input:focus, select:focus {
     transform: translateY(-50%);
     width: 3px;
     height: 18px;
-    background: var(--accent-cyan);
+    background: var(--text-secondary);
     border-radius: 0 2px 2px 0;
-    box-shadow: var(--shadow-glow-cyan);
 }
 
 .toolbar__separator {
@@ -448,40 +441,35 @@ input:focus, select:focus {
     padding-bottom: 4px;
 }
 
-.color-swatch-stack {
-    position: relative;
-    width: 38px;
-    height: 38px;
+.color-slots {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
 }
 
-.color-swatch {
-    width: 26px;
-    height: 26px;
-    border-radius: var(--radius-sm);
-    border: 2px solid var(--border-default);
+.color-slot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--border-default);
     cursor: pointer;
-    position: absolute;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-medium);
+    position: relative;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.color-swatch--primary {
-    background: #ffffff;
-    top: 0;
-    left: 0;
+.color-slot:hover {
+    transform: scale(1.15);
+}
+
+.color-slot.active {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     z-index: 2;
-    box-shadow: var(--shadow-sm);
-}
-
-.color-swatch--secondary {
-    background: rgba(0,0,0,0);
-    bottom: 0;
-    right: 0;
-    z-index: 1;
-    border-color: var(--text-muted);
-}
-
-.color-swatch:hover {
-    transform: scale(1.1);
 }
 
 .swap-btn {
@@ -630,18 +618,20 @@ input:focus, select:focus {
 }
 
 .layout-preview-mode {
-    grid-template-columns: var(--toolbar-width) 240px 1fr;
+    grid-template-columns: var(--toolbar-width) 1fr var(--sidebar-width);
 }
 
 .layout-preview-mode .canvas-area {
-    order: 2;
+    order: 3;
     border-left: 1px solid var(--border-default);
 }
 
 .layout-preview-mode .sidebar {
-    order: 1;
+    order: 2;
     border-left: none;
     border-right: 1px solid var(--border-default);
+    background: var(--bg-deep);
+    box-shadow: inset -4px 0 10px rgba(0,0,0,0.2);
 }
 
 /* Make preview panel much larger in preview mode */
@@ -649,38 +639,52 @@ input:focus, select:focus {
     flex: 1;
     display: flex;
     flex-direction: column;
+    padding: 12px;
 }
 
 .layout-preview-mode .preview-panel__body {
     flex: 1;
+    background: var(--bg-deepest);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+}
+
+/* Hide other panels in preview mode to maximize space */
+.layout-preview-mode .palette-panel,
+.layout-preview-mode .color-picker-panel,
+.layout-preview-mode .layers-panel {
+    display: none;
 }
 
 /* --- Palette Panel --- */
 .palette-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    gap: 3px;
+    gap: 5px;
 }
 
 .palette-swatch {
     width: 100%;
     aspect-ratio: 1;
-    border-radius: 3px;
+    border-radius: 50%;
     cursor: pointer;
-    border: 2px solid transparent;
+    border: 1px solid var(--border-subtle);
     transition: all var(--transition-fast);
     position: relative;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .palette-swatch:hover {
-    transform: scale(1.15);
+    transform: translateY(-2px);
     z-index: 2;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .palette-swatch.active {
-    border-color: var(--accent-cyan);
-    box-shadow: 0 0 6px rgba(88, 166, 255, 0.4);
+    border-color: var(--text-primary);
+    box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--text-secondary);
+    z-index: 3;
+    transform: scale(1.1);
 }
 
 /* --- Color Picker Panel --- */
@@ -751,15 +755,38 @@ input:focus, select:focus {
     cursor: pointer;
     transition: all var(--transition-fast);
     border: 1px solid transparent;
+    user-select: none;
 }
 
 .layer-item:hover {
     background: var(--bg-surface);
 }
 
+/* Selected = management focus (deletion/reordering) */
+.layer-item.selected {
+    border-color: var(--accent-cyan);
+    background: rgba(88, 166, 255, 0.1);
+}
+
+/* Active = drawing focus */
 .layer-item.active {
-    background: rgba(88, 166, 255, 0.08);
-    border-color: rgba(88, 166, 255, 0.2);
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.layer-item.active .layer-item__name {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Drag and Drop Visuals */
+.layer-item.dragging, .frame-thumb.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+}
+
+.layer-item.drop-target, .frame-thumb.drop-target {
+    box-shadow: 0 0 0 2px var(--accent-cyan);
+    transform: translateY(2px);
 }
 
 .layer-item__visibility {
@@ -781,7 +808,7 @@ input:focus, select:focus {
 }
 
 .layer-item__visibility.visible {
-    color: var(--accent-cyan);
+    color: var(--text-primary);
 }
 
 .layer-item__lock {
@@ -802,7 +829,7 @@ input:focus, select:focus {
 }
 
 .layer-item__lock.locked {
-    color: var(--accent-orange);
+    color: var(--text-primary);
 }
 
 .layer-item__name {
@@ -878,25 +905,26 @@ input:focus, select:focus {
 .timeline-btn--play {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-    color: #fff;
+    border-radius: var(--radius-sm);
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
     font-size: 15px;
-    box-shadow: var(--shadow-glow-cyan);
 }
 
 .timeline-btn--play:hover {
-    filter: brightness(1.15);
+    background: var(--bg-hover);
     transform: scale(1.05);
 }
 
 .timeline-btn--play.playing {
-    background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
-    box-shadow: 0 0 12px rgba(255, 110, 89, 0.4);
+    background: var(--bg-surface);
+    border-color: var(--text-secondary);
 }
 
 .timeline-btn--active {
-    color: var(--accent-cyan);
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .timeline__fps {
@@ -944,37 +972,58 @@ input:focus, select:focus {
 }
 
 .frame-thumb {
-    width: 72px;
-    min-width: 72px;
-    height: 84px;
+    width: 70px;
+    height: 85px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
     padding: 4px;
-    border-radius: var(--radius-md);
-    border: 2px solid transparent;
+    gap: 4px;
     cursor: pointer;
     transition: all var(--transition-fast);
-    background: var(--bg-raised);
+    position: relative;
+    overflow: hidden;
 }
 
 .frame-thumb:hover {
-    background: var(--bg-surface);
-    border-color: var(--border-default);
+    background: var(--bg-hover);
+    border-color: var(--text-muted);
 }
 
-.frame-thumb.active {
-    border-color: var(--accent-cyan);
-    background: rgba(88, 166, 255, 0.08);
-    box-shadow: 0 0 8px rgba(88, 166, 255, 0.2);
+/* Selected = editing focus */
+.frame-thumb.selected {
+    border-color: var(--text-secondary);
+    background: var(--bg-hover);
+    box-shadow: 0 0 0 1px var(--text-secondary);
+}
+
+/* Active = playing indicator */
+.frame-thumb.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--text-primary);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+    z-index: 3;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
 }
 
 .frame-thumb__canvas {
     width: 60px;
     height: 60px;
-    border-radius: 3px;
-    background: var(--bg-deep);
+    background: var(--bg-deepest);
+    border-radius: 2px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
@@ -1020,4 +1069,59 @@ input:focus, select:focus {
 /* --- Selection highlight animation (marching ants via CSS is supplementary) --- */
 @keyframes marchingAnts {
     to { stroke-dashoffset: -10; }
+}
+
+/* --- Context Menu --- */
+.context-menu {
+    position: fixed;
+    z-index: 10000;
+    min-width: 160px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: 4px 0;
+    backdrop-filter: blur(8px);
+    animation: menuFadeIn 0.1s ease-out;
+}
+
+@keyframes menuFadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.context-menu-item:hover {
+    background: rgba(88, 166, 255, 0.15);
+    color: var(--text-primary);
+}
+
+.context-menu-item--danger {
+    color: #ff6e59;
+}
+
+.context-menu-item--danger:hover {
+    background: rgba(255, 110, 89, 0.15);
+    color: #ff8e7f;
+}
+
+.context-menu-item--disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
+.context-menu-divider {
+    height: 1px;
+    background: var(--border-default);
+    margin: 4px 0;
 }

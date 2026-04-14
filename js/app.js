@@ -23,6 +23,7 @@ import { ColorPicker } from './palette/color-picker.js';
 import { Timeline } from './animation/timeline.js';
 import { PlaybackEngine } from './animation/playback.js';
 import { OnionSkin } from './animation/onion-skin.js';
+import { ContextMenu } from './ui/context-menu.js';
 import { HistoryManager } from './history/history-manager.js';
 import { PNGExporter } from './io/export-png.js';
 import { GIFExporter } from './io/export-gif.js';
@@ -48,15 +49,18 @@ class PixelAnimatorApp {
         this.toolManager = new ToolManager(this.state, this.bus, this.renderer, this.coordMapper);
         this._registerTools();
 
+        // Context Menu
+        this.contextMenu = new ContextMenu(this.state, this.bus);
+
         // Layers
-        this.layerManager = new LayerManager(this.state, this.bus);
+        this.layerManager = new LayerManager(this.state, this.bus, this.contextMenu);
 
         // Palette
         this.paletteManager = new PaletteManager(this.state, this.bus);
         this.colorPicker = new ColorPicker(this.state, this.bus);
 
         // Animation
-        this.timeline = new Timeline(this.state, this.bus, this.renderer, this.history);
+        this.timeline = new Timeline(this.state, this.bus, this.renderer, this.history, this.contextMenu);
         this.playback = new PlaybackEngine(this.state, this.bus, this.renderer, this.timeline);
         this.onionSkin = new OnionSkin(this.state, this.bus, this.renderer);
 
@@ -92,13 +96,27 @@ class PixelAnimatorApp {
         this.colorPicker.init();
 
         // Bind events
-        this._bindCanvasEvents();
-        this._bindToolbarEvents();
-        this._bindMenuEvents();
+        this._bindEvents();
+        this._updateLayoutUI();
+
+        // Handle window resize for "Fit" preview mode
+        window.addEventListener('resize', () => {
+            if (this.state.previewScale === 'fit') {
+                this.playback.updatePreview();
+            }
+        });
+    }
+
+    _bindEvents() {
         this._bindTimelineEvents();
         this._bindLayerEvents();
         this._bindKeyboardShortcuts();
         this._bindWindowEvents();
+
+        // Bind canvas and toolbar events
+        this._bindCanvasEvents();
+        this._bindToolbarEvents();
+        this._bindMenuEvents();
 
         // Initial render
         this.bus.emit(Events.CANVAS_REDRAW);
@@ -221,14 +239,21 @@ class PixelAnimatorApp {
         // Tool changed event — update toolbar UI
         this.bus.on(Events.TOOL_CHANGED, () => this._updateToolUI());
 
-        // Color swatches
-        document.getElementById('primary-color')?.addEventListener('click', () => {
-            this.colorPicker.show();
+        // Color swatches (3 Slots)
+        [0, 1, 2].forEach(i => {
+            const slot = document.getElementById(`color-slot-${i}`);
+            slot?.addEventListener('click', () => {
+                if (this.state.activeColorIndex === i) {
+                    this.colorPicker.show();
+                } else {
+                    this.state.setActiveColorIndex(i);
+                }
+            });
         });
 
         document.getElementById('swap-colors')?.addEventListener('click', () => {
-            this.state.swapColors();
-            this.paletteManager.renderUI();
+            const nextIdx = (this.state.activeColorIndex + 1) % 3;
+            this.state.setActiveColorIndex(nextIdx);
         });
 
         // Edit palette color button
@@ -489,10 +514,10 @@ class PixelAnimatorApp {
         const btn = document.getElementById('anim-play');
         if (!btn) return;
         if (this.state.isPlaying) {
-            btn.textContent = '⏸';
+            btn.textContent = 'Pause';
             btn.classList.add('playing');
         } else {
-            btn.textContent = '▶';
+            btn.textContent = 'Play';
             btn.classList.remove('playing');
         }
     }
@@ -580,7 +605,11 @@ class PixelAnimatorApp {
                     case 'backspace':
                     case 'delete':
                         e.preventDefault();
-                        this.timeline.deleteFrame();
+                        if (e.altKey) {
+                            this.layerManager.deleteLayer();
+                        } else {
+                            this.timeline.deleteFrame();
+                        }
                         break;
                     case '=':
                     case '+':

@@ -68,7 +68,7 @@ export class PlaybackEngine {
                     return;
                 }
             }
-            this.state.setCurrentFrame(nextFrame);
+            this.state.setCurrentPlayingFrame(nextFrame);
             this.timeline.renderUI();
         }
 
@@ -110,14 +110,14 @@ export class PlaybackEngine {
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, targetW, targetH);
 
-        this.renderer.renderFrameToCanvas(this.state.currentFrame, this._previewCanvas);
+        this.renderer.renderFrameToCanvas(this.state.currentPlayingFrame, this._previewCanvas);
         
         // Manual draw over if scaling was needed (renderFrameToCanvas might reset size)
         // Wait, renderer.renderFrameToCanvas sets targetCanvas size to art resolution.
         // We need to scale it up for preview.
         
         const offscreen = document.createElement('canvas');
-        this.renderer.renderFrameToCanvas(this.state.currentFrame, offscreen);
+        this.renderer.renderFrameToCanvas(this.state.currentPlayingFrame, offscreen);
         
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(offscreen, 0, 0, targetW, targetH);

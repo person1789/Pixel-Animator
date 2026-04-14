@@ -5,11 +5,12 @@ import { Events } from '../events.js';
 import { createFrame, cloneFrame } from '../state.js';
 
 export class Timeline {
-    constructor(state, bus, renderer, history) {
+    constructor(state, bus, renderer, history, contextMenu) {
         this.state = state;
         this.bus = bus;
         this.renderer = renderer;
         this.history = history;
+        this.contextMenu = contextMenu;
 
         this.bus.on(Events.FRAME_CHANGED, () => this.renderUI());
         this.bus.on(Events.PROJECT_LOADED, () => this.renderUI());
@@ -44,7 +45,7 @@ export class Timeline {
     deleteFrame() {
         if (this.state.frames.length <= 1) return;
         
-        const index = this.state.currentFrameIndex;
+        const index = this.state.selectedFrameIndex;
         const frameToDelete = this.state.frames[index];
 
         if (this.history) {
@@ -52,10 +53,18 @@ export class Timeline {
         }
 
         this.state.frames.splice(index, 1);
-        if (this.state.currentFrameIndex >= this.state.frames.length) {
-            this.state.currentFrameIndex = this.state.frames.length - 1;
+        
+        // Adjust indices if needed
+        if (this.state.selectedFrameIndex >= this.state.frames.length) {
+            this.state.selectedFrameIndex = this.state.frames.length - 1;
         }
-        this.state.setCurrentFrame(this.state.currentFrameIndex);
+
+        // Adjust current playing frame if it was after the deleted one
+        if (this.state.currentFrameIndex >= index && this.state.currentFrameIndex > 0) {
+            this.state.currentFrameIndex--;
+        }
+
+        this.state.setSelectedFrame(this.state.selectedFrameIndex, false);
         this.renderUI();
     }
 
@@ -107,7 +116,35 @@ export class Timeline {
         this.state.frames.forEach((frame, i) => {
             const thumb = document.createElement('div');
             thumb.classList.add('frame-thumb');
+            thumb.draggable = true;
+            if (i === this.state.selectedFrameIndex) thumb.classList.add('selected');
             if (i === this.state.currentFrameIndex) thumb.classList.add('active');
+
+            // Drag and Drop
+            thumb.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', i);
+                thumb.classList.add('dragging');
+            });
+
+            thumb.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                thumb.classList.add('drop-target');
+            });
+
+            thumb.addEventListener('dragleave', () => {
+                thumb.classList.remove('drop-target');
+            });
+
+            thumb.addEventListener('drop', (e) => {
+                e.preventDefault();
+                thumb.classList.remove('drop-target');
+                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                this.state.moveFrame(fromIndex, i);
+            });
+
+            thumb.addEventListener('dragend', () => {
+                thumb.classList.remove('dragging');
+            });
 
             const canvas = document.createElement('canvas');
             canvas.classList.add('frame-thumb__canvas');
@@ -126,8 +163,27 @@ export class Timeline {
 
             thumb.addEventListener('click', () => this.goToFrame(i));
 
+            // Context Menu
+            thumb.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                this.goToFrame(i); // Focus frame first
+
+                this.contextMenu.show(e.clientX, e.clientY, [
+                    { label: 'Duplicate Frame', action: () => this.duplicateFrame() },
+                    { label: 'Delete Frame', action: () => this.deleteFrame(), danger: true, disabled: this.state.frames.length <= 1 },
+                    { type: 'divider' },
+                    { label: 'Add New Frame', action: () => this.addFrame() }
+                ]);
+            });
+
             container.appendChild(thumb);
         });
+    }
+
+    goToFrame(index) {
+        this.state.setSelectedFrame(index);
     }
 
     _renderThumb(canvas, frame) {

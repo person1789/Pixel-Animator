@@ -5,13 +5,16 @@ import { Events } from '../events.js';
 import { createLayer, cloneLayer } from '../state.js';
 
 export class LayerManager {
-    constructor(state, bus) {
+    constructor(state, bus, contextMenu) {
         this.state = state;
         this.bus = bus;
+        this.contextMenu = contextMenu;
 
         this.bus.on(Events.LAYER_CHANGED, () => this.renderUI());
         this.bus.on(Events.FRAME_CHANGED, () => this.renderUI());
         this.bus.on(Events.PROJECT_LOADED, () => this.renderUI());
+
+        this._setupRenameModal();
     }
 
     addLayer(name) {
@@ -26,12 +29,19 @@ export class LayerManager {
 
     deleteLayer() {
         const layers = this.state.currentFrame.layers;
-        if (layers.length <= 1) return; // Must keep at least one
-        layers.splice(this.state.currentLayerIndex, 1);
-        if (this.state.currentLayerIndex >= layers.length) {
-            this.state.currentLayerIndex = layers.length - 1;
+        if (layers.length <= 1) return;
+        
+        const index = this.state.selectedLayerIndex;
+        layers.splice(index, 1);
+        
+        if (this.state.selectedLayerIndex >= layers.length) {
+            this.state.selectedLayerIndex = layers.length - 1;
         }
-        this.bus.emit(Events.LAYER_CHANGED, this.state.currentLayerIndex);
+        if (this.state.currentLayerIndex >= index && this.state.currentLayerIndex > 0) {
+            this.state.currentLayerIndex--;
+        }
+
+        this.state.setSelectedLayer(this.state.selectedLayerIndex);
         this.bus.emit(Events.CANVAS_REDRAW);
         this.renderUI();
     }
@@ -132,13 +142,42 @@ export class LayerManager {
             const layer = layers[i];
             const item = document.createElement('div');
             item.classList.add('layer-item');
+            item.draggable = true;
+            
+            if (i === this.state.selectedLayerIndex) item.classList.add('selected');
             if (i === this.state.currentLayerIndex) item.classList.add('active');
+
+            // Drag and Drop
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', i);
+                item.classList.add('dragging');
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                item.classList.add('drop-target');
+            });
+
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('drop-target');
+            });
+
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                item.classList.remove('drop-target');
+                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                this.state.moveLayer(fromIndex, i);
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+            });
 
             // Visibility toggle
             const visBtn = document.createElement('span');
             visBtn.classList.add('layer-item__visibility');
             if (layer.visible) visBtn.classList.add('visible');
-            visBtn.textContent = layer.visible ? '👁' : '👁‍🗨';
+            visBtn.textContent = layer.visible ? '[v]' : '[ ]';
             visBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleVisibility(i);
@@ -148,7 +187,7 @@ export class LayerManager {
             const lockBtn = document.createElement('span');
             lockBtn.classList.add('layer-item__lock');
             if (layer.locked) lockBtn.classList.add('locked');
-            lockBtn.textContent = layer.locked ? '🔒' : '🔓';
+            lockBtn.textContent = layer.locked ? '[L]' : '[ ]';
             lockBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleLock(i);
@@ -186,8 +225,25 @@ export class LayerManager {
             item.appendChild(opacityInput);
 
             item.addEventListener('click', () => {
-                this.state.setCurrentLayer(i);
+                this.state.setSelectedLayer(i);
                 this.renderUI();
+            });
+
+            // Context Menu
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                this.state.setSelectedLayer(i);
+                this.renderUI();
+
+                this.contextMenu.show(e.clientX, e.clientY, [
+                    { label: 'Rename Layer...', action: () => this.openRenameModal(i) },
+                    { label: 'Duplicate Layer', action: () => this.duplicateLayer() },
+                    { label: 'Merge Layer Down', action: () => this.mergeDown(), disabled: i === 0 },
+                    { type: 'divider' },
+                    { label: 'Delete Layer', action: () => this.deleteLayer(), danger: true, disabled: layers.length <= 1 }
+                ]);
             });
 
             container.appendChild(item);
@@ -206,5 +262,48 @@ export class LayerManager {
         tctx.putImageData(imageData, 0, 0);
         ctx.clearRect(0, 0, 28, 28);
         ctx.drawImage(tempCanvas, 0, 0, 28, 28);
+    }
+
+    // ===== Rename Modal Logic =====
+
+    _setupRenameModal() {
+        this.renameModal = document.getElementById('rename-layer-dialog');
+        this.renameInput = document.getElementById('rename-layer-input');
+        
+        document.getElementById('rename-layer-save')?.addEventListener('click', () => {
+            if (this._renamingIndex !== null) {
+                const newName = this.renameInput.value.trim() || `Layer ${this._renamingIndex + 1}`;
+                this.state.currentFrame.layers[this._renamingIndex].name = newName;
+                this.renderUI();
+            }
+            this.closeRenameModal();
+        });
+
+        document.getElementById('rename-layer-cancel')?.addEventListener('click', () => {
+            this.closeRenameModal();
+        });
+
+        this.renameInput?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('rename-layer-save').click();
+            if (e.key === 'Escape') this.closeRenameModal();
+        });
+    }
+
+    openRenameModal(index) {
+        this._renamingIndex = index;
+        const layer = this.state.currentFrame.layers[index];
+        if (this.renameInput) {
+            this.renameInput.value = layer.name;
+            this.renameModal.style.display = 'flex';
+            this.renameInput.focus();
+            this.renameInput.select();
+        }
+    }
+
+    closeRenameModal() {
+        if (this.renameModal) {
+            this.renameModal.style.display = 'none';
+        }
+        this._renamingIndex = null;
     }
 }

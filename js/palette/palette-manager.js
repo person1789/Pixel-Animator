@@ -85,16 +85,13 @@ export class PaletteManager {
     }
 
     _updateSwatches() {
-        const primary = document.getElementById('primary-color');
-        const secondary = document.getElementById('secondary-color');
-        if (primary) {
-            const c = this.state.primaryColor;
-            primary.style.backgroundColor = `rgba(${c.r},${c.g},${c.b},${c.a / 255})`;
-        }
-        if (secondary) {
-            const c = this.state.secondaryColor;
-            secondary.style.backgroundColor = `rgba(${c.r},${c.g},${c.b},${c.a / 255})`;
-        }
+        this.state.colors.forEach((c, i) => {
+            const slot = document.getElementById(`color-slot-${i}`);
+            if (slot) {
+                slot.style.backgroundColor = `rgba(${c.r},${c.g},${c.b},${c.a / 255})`;
+                slot.classList.toggle('active', i === this.state.activeColorIndex);
+            }
+        });
     }
 
     _hexToRgba(hex) {
