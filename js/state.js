@@ -211,7 +211,7 @@ export class ProjectState {
         const i = (y * this.canvasWidth + x) * 4;
         if (this.indexedMode) {
             const index = layerData[i];
-            if (index < this.palette.length) {
+            if (index >= 0 && index < this.palette.length) {
                 return this._hexToRgba(this.palette[index]);
             } else {
                 return { r: 0, g: 0, b: 0, a: 0 };
@@ -231,13 +231,14 @@ export class ProjectState {
         const i = (y * this.canvasWidth + x) * 4;
         if (this.indexedMode) {
             const hex = this._rgbaToHex(color.r, color.g, color.b);
-            const index = this.palette.indexOf(hex);
-            if (index >= 0) {
-                layerData[i] = index;
-                layerData[i + 1] = 0;
-                layerData[i + 2] = 0;
-                layerData[i + 3] = color.a;
+            let index = this.palette.indexOf(hex);
+            if (index === -1) {
+                index = 0; // Default to first color if not in palette
             }
+            layerData[i] = index;
+            layerData[i + 1] = 0;
+            layerData[i + 2] = 0;
+            layerData[i + 3] = color.a;
         } else {
             layerData[i] = color.r;
             layerData[i + 1] = color.g;
