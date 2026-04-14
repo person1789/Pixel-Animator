@@ -1,5 +1,5 @@
-/**
- * Pixel Animator — Application Bootstrap
+﻿/**
+ * Pixel Animator ΓÇö Application Bootstrap
  * Wires all modules together, initializes UI, binds events.
  */
 import { EventBus, Events } from './events.js';
@@ -124,7 +124,7 @@ class PixelAnimatorApp {
         // Update status bar
         this._updateStatusBar();
 
-        console.log('🎨 Pixel Animator initialized');
+        console.log('≡ƒÄ¿ Pixel Animator initialized');
     }
 
     _registerTools() {
@@ -236,7 +236,7 @@ class PixelAnimatorApp {
             });
         });
 
-        // Tool changed event — update toolbar UI
+        // Tool changed event ΓÇö update toolbar UI
         this.bus.on(Events.TOOL_CHANGED, () => this._updateToolUI());
 
         // Color swatches (3 Slots)
@@ -654,25 +654,14 @@ class PixelAnimatorApp {
     _updateStatusBar() {
         const dims = document.getElementById('status-dimensions');
         const zoom = document.getElementById('status-zoom');
-        if (dims) dims.textContent = `${this.state.canvasWidth}×${this.state.canvasHeight}`;
-        if (zoom) zoom.textContent = `${this.state.zoom}×`;
+        if (dims) dims.textContent = `${this.state.canvasWidth}├ù${this.state.canvasHeight}`;
+        if (zoom) zoom.textContent = `${this.state.zoom}├ù`;
     }
 }
 
 // ===== Initialize =====
-function initializeApp() {
-    try {
-        const app = new PixelAnimatorApp();
-        app.init();
-        console.log('✅ Pixel Animator initialized successfully');
-    } catch (err) {
-        console.error('❌ Initialization error:', err);
-        console.error(err.stack);
-    }
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new PixelAnimatorApp();
+    app.init();
+});
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
-}
