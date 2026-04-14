@@ -10,18 +10,12 @@ export class ProjectIO {
         this.bus = bus;
     }
 
-    /**
-     * Save the project to localStorage for auto-save.
-     */
     saveToLocalStorage() {
         const project = this._getProjectData();
         const json = JSON.stringify(project);
         localStorage.setItem('pixelAnimatorAutoSave', json);
     }
 
-    /**
-     * Load from localStorage.
-     */
     loadFromLocalStorage() {
         const json = localStorage.getItem('pixelAnimatorAutoSave');
         if (!json) return false;
@@ -35,9 +29,6 @@ export class ProjectIO {
         }
     }
 
-    /**
-     * Save project to a downloadable file.
-     */
     save() {
         const project = this._getProjectData();
         const json = JSON.stringify(project);
@@ -46,15 +37,12 @@ export class ProjectIO {
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'pixel-animator-project.pxl';
+        a.download = `project-${Date.now()}.pixanim`; // Added timestamp
         a.click();
         
         URL.revokeObjectURL(url);
     }
 
-    /**
-     * Load a project from a JSON file.
-     */
     load() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -69,7 +57,7 @@ export class ProjectIO {
                     this._applyProject(project);
                 } catch (err) {
                     console.error('Failed to load project:', err);
-                    alert('Failed to load project file.');
+                    alert('Invalid project file.');
                 }
             };
             reader.readAsText(file);
@@ -77,9 +65,6 @@ export class ProjectIO {
         input.click();
     }
 
-    /**
-     * Helper to gather project state (prevents code duplication).
-     */
     _getProjectData() {
         return {
             version: 1,
@@ -87,9 +72,9 @@ export class ProjectIO {
             canvasHeight: this.state.canvasHeight,
             fps: this.state.fps,
             palette: [...this.state.palette],
-            tags: [...this.state.tags],
+            tags: [...this.state.tags || []],
             frames: this.state.frames.map(frame => ({
-                duration: frame.duration,
+                duration: frame.duration || 100,
                 layers: frame.layers.map(layer => ({
                     name: layer.name,
                     visible: layer.visible,
@@ -103,51 +88,58 @@ export class ProjectIO {
     }
 
     _applyProject(project) {
+        // 1. Basic properties
         this.state.canvasWidth = project.canvasWidth;
         this.state.canvasHeight = project.canvasHeight;
         this.state.fps = project.fps || 12;
-
-        if (project.palette) {
-            this.state.palette = [...project.palette];
-        }
-
+        this.state.palette = project.palette ? [...project.palette] : this.state.palette;
         this.state.tags = project.tags || [];
 
-        this.state.frames = project.frames.map(frameData => ({
-            duration: frameData.duration || 100,
-            layers: frameData.layers.map(layerData => ({
-                name: layerData.name,
-                visible: layerData.visible !== false,
-                locked: layerData.locked || false,
-                opacity: layerData.opacity !== undefined ? layerData.opacity : 1,
-                type: layerData.type || 'normal',
-                data: this._decodeData(layerData.data, project.canvasWidth * project.canvasHeight * 4),
-            })),
-        }));
+        // 2. Reconstruct Frames & Layers
+        // We use the same length calculation used in _decodeData
+        const expectedDataLength = project.canvasWidth * project.canvasHeight * 4;
 
+        this.state.frames = project.frames.map(frameData => {
+            return {
+                duration: frameData.duration || 100,
+                layers: frameData.layers.map(layerData => ({
+                    ...layerData,
+                    visible: layerData.visible !== false,
+                    locked: !!layerData.locked,
+                    opacity: layerData.opacity ?? 1,
+                    data: this._decodeData(layerData.data, expectedDataLength)
+                }))
+            };
+        });
+
+        // 3. Reset UI Selection state
         this.state.currentFrameIndex = 0;
         this.state.currentLayerIndex = 0;
         
-        // Dynamic zoom calculation
+        // 4. Update Viewport
         this.state.zoom = Math.max(1, Math.floor(512 / Math.max(this.state.canvasWidth, this.state.canvasHeight)));
 
-        // Update UI status if element exists
         const dimDisplay = document.getElementById('status-dimensions');
         if (dimDisplay) {
             dimDisplay.textContent = `${this.state.canvasWidth}×${this.state.canvasHeight}`;
         }
 
+        // 5. Notify the rest of the app
         this.bus.emit(Events.PROJECT_LOADED);
         this.bus.emit(Events.CANVAS_REDRAW);
     }
 
     /**
-     * Encode Uint8ClampedArray to base64.
+     * Efficiently Encode Uint8ClampedArray to base64.
+     * Uses a loop to avoid "Maximum call stack size" errors on large images.
      */
     _encodeData(data) {
-        // Fast conversion for larger typed arrays
-        const binString = Array.from(data, (byte) => String.fromCharCode(byte)).join("");
-        return btoa(binString);
+        let binary = "";
+        const len = data.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(data[i]);
+        }
+        return btoa(binary);
     }
 
     /**
@@ -162,7 +154,7 @@ export class ProjectIO {
             }
             return data;
         } catch (err) {
-            console.warn('Data decoding failed, returning empty buffer');
+            console.error('Decoding error:', err);
             return new Uint8ClampedArray(expectedLength);
         }
     }
