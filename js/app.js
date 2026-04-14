@@ -665,20 +665,13 @@ class PixelAnimatorApp {
 }
 
 // ===== Initialize =====
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        try {
-            const app = new PixelAnimatorApp();
-            app.init();
-        } catch (err) {
-            console.error('Failed to initialize Pixel Animator:', err);
-        }
-    });
-} else {
+window.addEventListener('load', () => {
     try {
         const app = new PixelAnimatorApp();
         app.init();
+        console.log('✅ App initialized successfully');
     } catch (err) {
-        console.error('Failed to initialize Pixel Animator:', err);
+        console.error('❌ Initialization error:', err);
+        console.error(err.stack);
     }
-}
+});
