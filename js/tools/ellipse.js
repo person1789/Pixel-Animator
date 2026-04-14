@@ -54,88 +54,60 @@ export class EllipseTool {
             y1 = y0 + size;
         }
 
-        const rx = Math.floor((x1 - x0) / 2);
-        const ry = Math.floor((y1 - y0) / 2);
-        const cx = x0 + rx;
-        const cy = y0 + ry;
-
         const color = this.state.primaryColor;
         const data = this.state.currentLayer.data;
         const filled = this.state.toolOptions.shapeMode === 'filled';
-
-        if (rx <= 0 || ry <= 0) {
-            this.state.setPixel(data, cx, cy, color);
-            return;
-        }
-
-        // Use Midpoint Ellipse Algorithm
-        let x = 0;
-        let y = ry;
-
-        // Initial decision parameter for region 1
-        let d1 = (ry * ry) - (rx * rx * ry) + (0.25 * rx * rx);
-        let dx = 2 * ry * ry * x;
-        let dy = 2 * rx * rx * y;
-
         const plot = (px, py) => this.state.setPixel(data, px, py, color);
-        
-        // Horizontal scanlines for filling
+
+        // --- Bounding Box Integer Ellipse Algorithm ---
+        // Handles even/odd widths and ensures continuity without gaps
+        let a = Math.abs(x1 - x0);
+        let b = Math.abs(y1 - y0);
+        let b1 = b & 1;
+        let dx = 4 * (1 - a) * b * b;
+        let dy = 4 * (b1 + 1) * a * a;
+        let err = dx + dy + b1 * a * a;
+        let e2;
+
+        if (x0 > x1) { x0 = x1; x1 += a; }
+        if (y0 > y1) { y0 = y1; }
+        y0 += Math.floor((b + 1) / 2);
+        y1 = y0 - b1;
+        a *= 8 * a;
+        b1 = 8 * b * b;
+
+        // Scanline tracker for filling
         const horizontalLines = new Map();
         const addLinePixel = (px, py) => {
             if (!horizontalLines.has(py)) horizontalLines.set(py, { min: px, max: px });
             const line = horizontalLines.get(py);
             line.min = Math.min(line.min, px);
             line.max = Math.max(line.max, px);
-            plot(px, py);
+            if (!filled) plot(px, py);
         };
 
-        const drawSymmetric = (px, py) => {
-            if (filled) {
-                addLinePixel(cx + px, cy + py);
-                addLinePixel(cx - px, cy + py);
-                addLinePixel(cx + px, cy - py);
-                addLinePixel(cx - px, cy - py);
-            } else {
-                plot(cx + px, cy + py);
-                plot(cx - px, cy + py);
-                plot(cx + px, cy - py);
-                plot(cx - px, cy - py);
-            }
-        };
+        do {
+            addLinePixel(x1, y0);
+            addLinePixel(x0, y0);
+            addLinePixel(x0, y1);
+            addLinePixel(x1, y1);
 
-        // Region 1
-        while (dx < dy) {
-            drawSymmetric(x, y);
-            if (d1 < 0) {
-                x++;
-                dx = dx + (2 * ry * ry);
-                d1 = d1 + dx + (ry * ry);
-            } else {
-                x++;
-                y--;
-                dx = dx + (2 * ry * ry);
-                dy = dy - (2 * rx * rx);
-                d1 = d1 + dx - dy + (ry * ry);
+            e2 = 2 * err;
+            if (e2 <= dy) {
+                y0++; y1--;
+                err += dy += a;
             }
-        }
-
-        // Decision parameter for region 2
-        let d2 = ((ry * ry) * ((x + 0.5) * (x + 0.5))) + ((rx * rx) * ((y - 1) * (y - 1))) - (rx * rx * ry * ry);
-
-        // Region 2
-        while (y >= 0) {
-            drawSymmetric(x, y);
-            if (d2 > 0) {
-                y--;
-                dy = dy - (2 * rx * rx);
-                d2 = d2 + (rx * rx) - dy;
-            } else {
-                y--;
-                x++;
-                dx = dx + (2 * ry * ry);
-                dy = dy - (2 * rx * rx);
-                d2 = d2 + dx - dy + (rx * rx);
+            if (e2 >= dx || 2 * err > dy) {
+                x0++; x1--;
+                err += dx += b1;
             }
+        } while (x0 <= x1);
+
+        while (y0 - y1 < b) {
+            plot(x0 - 1, y0);
+            plot(x1 + 1, y0++);
+            plot(x0 - 1, y1);
+            plot(x1 + 1, y1--);
         }
 
         if (filled) {
