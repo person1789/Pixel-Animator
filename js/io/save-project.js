@@ -14,26 +14,7 @@ export class ProjectIO {
      * Save the project to localStorage for auto-save.
      */
     saveToLocalStorage() {
-        const project = {
-            version: 1,
-            canvasWidth: this.state.canvasWidth,
-            canvasHeight: this.state.canvasHeight,
-            fps: this.state.fps,
-            palette: [...this.state.palette],
-            tags: [...this.state.tags],
-            frames: this.state.frames.map(frame => ({
-                duration: frame.duration,
-                layers: frame.layers.map(layer => ({
-                    name: layer.name,
-                    visible: layer.visible,
-                    locked: layer.locked,
-                    opacity: layer.opacity,
-                    type: layer.type || 'normal',
-                    data: this._encodeData(layer.data),
-                })),
-            })),
-        };
-
+        const project = this._getProjectData();
         const json = JSON.stringify(project);
         localStorage.setItem('pixelAnimatorAutoSave', json);
     }
@@ -53,7 +34,54 @@ export class ProjectIO {
             return false;
         }
     }
-        const project = {
+
+    /**
+     * Save project to a downloadable file.
+     */
+    save() {
+        const project = this._getProjectData();
+        const json = JSON.stringify(project);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'pixel-animator-project.pxl';
+        a.click();
+        
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Load a project from a JSON file.
+     */
+    load() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pxl,.pixanim,.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const project = JSON.parse(ev.target.result);
+                    this._applyProject(project);
+                } catch (err) {
+                    console.error('Failed to load project:', err);
+                    alert('Failed to load project file.');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    /**
+     * Helper to gather project state (prevents code duplication).
+     */
+    _getProjectData() {
+        return {
             version: 1,
             canvasWidth: this.state.canvasWidth,
             canvasHeight: this.state.canvasHeight,
@@ -72,40 +100,6 @@ export class ProjectIO {
                 })),
             })),
         };
-
-        const json = JSON.stringify(project);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'pixel-animator-project.pxl';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    /**
-     * Load a project from a JSON file.
-     */
-    load() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.pxl,.pixanim,.json';
-        input.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const project = JSON.parse(ev.target.result);
-                    this._applyProject(project);
-                } catch (err) {
-                    console.error('Failed to load project:', err);
-                    alert('Failed to load project file.');
-                }
-            };
-            reader.readAsText(file);
-        });
-        input.click();
     }
 
     _applyProject(project) {
@@ -133,11 +127,15 @@ export class ProjectIO {
 
         this.state.currentFrameIndex = 0;
         this.state.currentLayerIndex = 0;
+        
+        // Dynamic zoom calculation
         this.state.zoom = Math.max(1, Math.floor(512 / Math.max(this.state.canvasWidth, this.state.canvasHeight)));
 
-        // Update UI
-        document.getElementById('status-dimensions').textContent =
-            `${this.state.canvasWidth}×${this.state.canvasHeight}`;
+        // Update UI status if element exists
+        const dimDisplay = document.getElementById('status-dimensions');
+        if (dimDisplay) {
+            dimDisplay.textContent = `${this.state.canvasWidth}×${this.state.canvasHeight}`;
+        }
 
         this.bus.emit(Events.PROJECT_LOADED);
         this.bus.emit(Events.CANVAS_REDRAW);
@@ -147,11 +145,9 @@ export class ProjectIO {
      * Encode Uint8ClampedArray to base64.
      */
     _encodeData(data) {
-        let binary = '';
-        for (let i = 0; i < data.length; i++) {
-            binary += String.fromCharCode(data[i]);
-        }
-        return btoa(binary);
+        // Fast conversion for larger typed arrays
+        const binString = Array.from(data, (byte) => String.fromCharCode(byte)).join("");
+        return btoa(binString);
     }
 
     /**
@@ -165,7 +161,8 @@ export class ProjectIO {
                 data[i] = binary.charCodeAt(i);
             }
             return data;
-        } catch {
+        } catch (err) {
+            console.warn('Data decoding failed, returning empty buffer');
             return new Uint8ClampedArray(expectedLength);
         }
     }
