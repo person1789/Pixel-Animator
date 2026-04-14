@@ -1,145 +1,169 @@
 /**
- * Sprite Sheet Exporter — exports all frames as a single PNG sprite sheet
- * with optional JSON metadata.
+ * Project Save/Load — serializes project state to a .pixanim JSON file.
  */
-export class SpriteSheetExporter {
-    constructor(state, renderer) {
+import { createFrame, createLayer } from '../state.js';
+import { Events } from '../events.js';
+
+export class ProjectIO {
+    constructor(state, bus) {
         this.state = state;
-        this.renderer = renderer;
+        this.bus = bus;
     }
 
     /**
-     * Export as sprite sheet.
-     * @param {object} options
-     * @param {number} options.scale - Scale multiplier
-     * @param {number} options.columns - Columns in the grid (0 = horizontal strip)
-     * @param {number} options.padding - Padding between frames
-     * @param {boolean} options.includeJson - Export JSON metadata
+     * Save the project to localStorage for auto-save.
      */
-    export(options = {}) {
-        const {
-            scale = 1,
-            columns = 0,
-            padding = 0,
-            includeJson = true,
-        } = options;
+    saveToLocalStorage() {
+        const project = this._getProjectData();
+        const json = JSON.stringify(project);
+        localStorage.setItem('pixelAnimatorAutoSave', json);
+    }
 
-        const { canvasWidth, canvasHeight, frames, fps } = this.state;
-        const fw = canvasWidth * scale;
-        const fh = canvasHeight * scale;
-        const cols = columns > 0 ? columns : frames.length;
-        const rows = Math.ceil(frames.length / cols);
-
-        const sheetW = cols * (fw + padding) - padding;
-        const sheetH = rows * (fh + padding) - padding;
-
-        const sheetCanvas = document.createElement('canvas');
-        sheetCanvas.width = sheetW;
-        sheetCanvas.height = sheetH;
-        const ctx = sheetCanvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvasWidth;
-        tempCanvas.height = canvasHeight;
-
-        const frameData = [];
-
-        frames.forEach((frame, i) => {
-            const col = i % cols;
-            const row = Math.floor(i / cols);
-            const x = col * (fw + padding);
-            const y = row * (fh + padding);
-
-            this.renderer.renderFrameToCanvas(frame, tempCanvas, true);
-            ctx.drawImage(tempCanvas, x, y, fw, fh);
-
-            frameData.push({
-                frame: i,
-                x, y,
-                width: fw,
-                height: fh,
-                duration: frame.duration || Math.round(1000 / fps),
-            });
-        });
-
-        // Download PNG
-        sheetCanvas.toBlob((blob) => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pixel-animator-spritesheet.png';
-            a.click();
-            URL.revokeObjectURL(url);
-        }, 'image/png');
-
-        // Download JSON metadata
-        if (includeJson) {
-            const meta = {
-                image: 'pixel-animator-spritesheet.png',
-                frameWidth: fw,
-                frameHeight: fh,
-                frameCount: frames.length,
-                fps,
-                columns: cols,
-                rows,
-                padding,
-                frames: frameData,
-            };
-            const jsonBlob = new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(jsonBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pixel-animator-spritesheet.json';
-            a.click();
-            URL.revokeObjectURL(url);
+    /**
+     * Load from localStorage.
+     */
+    loadFromLocalStorage() {
+        const json = localStorage.getItem('pixelAnimatorAutoSave');
+        if (!json) return false;
+        try {
+            const project = JSON.parse(json);
+            this._applyProject(project);
+            return true;
+        } catch (err) {
+            console.error('Failed to load auto-save:', err);
+            return false;
         }
     }
 
     /**
-     * Export tiles — automatically slice into 16x16 or 32x32 tiles.
-     * @param {object} options
-     * @param {number} options.tileSize - 16 or 32
+     * Save project to a downloadable file.
      */
-    exportTiles(options = {}) {
-        const { tileSize = 16 } = options;
-        const { canvasWidth, canvasHeight, frames } = this.state;
+    save() {
+        const project = this._getProjectData();
+        const json = JSON.stringify(project);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'pixel-animator-project.pxl';
+        a.click();
+        
+        URL.revokeObjectURL(url);
+    }
 
-        if (canvasWidth % tileSize !== 0 || canvasHeight % tileSize !== 0) {
-            alert(`Canvas must be divisible by ${tileSize} for tile export.`);
-            return;
-        }
-
-        const tilesX = canvasWidth / tileSize;
-        const tilesY = canvasHeight / tileSize;
-
-        frames.forEach((frame, frameIndex) => {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvasWidth;
-            tempCanvas.height = canvasHeight;
-            this.renderer.renderFrameToCanvas(frame, tempCanvas, true);
-
-            for (let ty = 0; ty < tilesY; ty++) {
-                for (let tx = 0; tx < tilesX; tx++) {
-                    const tileCanvas = document.createElement('canvas');
-                    tileCanvas.width = tileSize;
-                    tileCanvas.height = tileSize;
-                    const tctx = tileCanvas.getContext('2d');
-                    tctx.drawImage(
-                        tempCanvas,
-                        tx * tileSize, ty * tileSize, tileSize, tileSize,
-                        0, 0, tileSize, tileSize
-                    );
-
-                    tileCanvas.toBlob((blob) => {
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `tile_f${frameIndex}_x${tx}_y${ty}.png`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    }, 'image/png');
+    /**
+     * Load a project from a JSON file.
+     */
+    load() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pxl,.pixanim,.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const project = JSON.parse(ev.target.result);
+                    this._applyProject(project);
+                } catch (err) {
+                    console.error('Failed to load project:', err);
+                    alert('Failed to load project file.');
                 }
-            }
-        });
+            };
+            reader.readAsText(file);
+        };
+        input.click();
     }
+
+    /**
+     * Helper to gather project state (prevents code duplication).
+     */
+    _getProjectData() {
+        return {
+            version: 1,
+            canvasWidth: this.state.canvasWidth,
+            canvasHeight: this.state.canvasHeight,
+            fps: this.state.fps,
+            palette: [...this.state.palette],
+            tags: [...this.state.tags],
+            frames: this.state.frames.map(frame => ({
+                duration: frame.duration,
+                layers: frame.layers.map(layer => ({
+                    name: layer.name,
+                    visible: layer.visible,
+                    locked: layer.locked,
+                    opacity: layer.opacity,
+                    type: layer.type || 'normal',
+                    data: this._encodeData(layer.data),
+                })),
+            })),
+        };
+    }
+
+    _applyProject(project) {
+        this.state.canvasWidth = project.canvasWidth;
+        this.state.canvasHeight = project.canvasHeight;
+        this.state.fps = project.fps || 12;
+
+        if (project.palette) {
+            this.state.palette = [...project.palette];
+        }
+
+        this.state.tags = project.tags || [];
+
+        this.state.frames = project.frames.map(frameData => ({
+            duration: frameData.duration || 100,
+            layers: frameData.layers.map(layerData => ({
+                name: layerData.name,
+                visible: layerData.visible !== false,
+                locked: layerData.locked || false,
+                opacity: layerData.opacity !== undefined ? layerData.opacity : 1,
+                type: layerData.type || 'normal',
+                data: this._decodeData(layerData.data, project.canvasWidth * project.canvasHeight * 4),
+            })),
+        }));
+
+        this.state.currentFrameIndex = 0;
+        this.state.currentLayerIndex = 0;
+        
+        // Dynamic zoom calculation
+        this.state.zoom = Math.max(1, Math.floor(512 / Math.max(this.state.canvasWidth, this.state.canvasHeight)));
+
+        // Update UI status if element exists
+        const dimDisplay = document.getElementById('status-dimensions');
+        if (dimDisplay) {
+            dimDisplay.textContent = `${this.state.canvasWidth}×${this.state.canvasHeight}`;
+        }
+
+        this.bus.emit(Events.PROJECT_LOADED);
+        this.bus.emit(Events.CANVAS_REDRAW);
+    }
+
+    /**
+     * Encode Uint8ClampedArray to base64.
+     */
+    _encodeData(data) {
+        // Fast conversion for larger typed arrays
+        const binString = Array.from(data, (byte) => String.fromCharCode(byte)).join("");
+        return btoa(binString);
+    }
+
+    /**
+     * Decode base64 to Uint8ClampedArray.
+     */
+    _decodeData(base64, expectedLength) {
+        try {
+            const binary = atob(base64);
+            const data = new Uint8ClampedArray(expectedLength);
+            for (let i = 0; i < binary.length && i < expectedLength; i++) {
+                data[i] = binary.charCodeAt(i);
+            }
+            return data;
+        } catch (err) {
+            console.warn('Data decoding failed, returning empty buffer');
+            return new Uint8ClampedArray(expectedLength);
+        }
+    }
+}
