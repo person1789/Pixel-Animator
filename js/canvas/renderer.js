@@ -162,7 +162,11 @@ export class Renderer {
                 pixelData = new Uint8ClampedArray(canvasWidth * canvasHeight * 4);
                 for (let p = 0; p < canvasWidth * canvasHeight; p++) {
                     const index = layer.data[p * 4];
-                    const color = index < this.state.palette.length ? this.state.palette[index] : { r: 0, g: 0, b: 0, a: 0 };
+                    let color = { r: 0, g: 0, b: 0, a: 0 };
+                    if (index < this.state.palette.length) {
+                        color = this.state._hexToRgba(this.state.palette[index]);
+                        color.a = layer.data[p * 4 + 3]; // use alpha from layer
+                    }
                     pixelData[p * 4] = color.r;
                     pixelData[p * 4 + 1] = color.g;
                     pixelData[p * 4 + 2] = color.b;

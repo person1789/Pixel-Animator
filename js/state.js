@@ -211,7 +211,11 @@ export class ProjectState {
         const i = (y * this.canvasWidth + x) * 4;
         if (this.indexedMode) {
             const index = layerData[i];
-            return index < this.palette.length ? { ...this.palette[index] } : { r: 0, g: 0, b: 0, a: 0 };
+            if (index < this.palette.length) {
+                return this._hexToRgba(this.palette[index]);
+            } else {
+                return { r: 0, g: 0, b: 0, a: 0 };
+            }
         } else {
             return {
                 r: layerData[i],
@@ -226,12 +230,13 @@ export class ProjectState {
         if (x < 0 || x >= this.canvasWidth || y < 0 || y >= this.canvasHeight) return;
         const i = (y * this.canvasWidth + x) * 4;
         if (this.indexedMode) {
-            const index = this.palette.findIndex(c => c.r === color.r && c.g === color.g && c.b === color.b && c.a === color.a);
+            const hex = this._rgbaToHex(color.r, color.g, color.b);
+            const index = this.palette.indexOf(hex);
             if (index >= 0) {
                 layerData[i] = index;
                 layerData[i + 1] = 0;
                 layerData[i + 2] = 0;
-                layerData[i + 3] = 255;
+                layerData[i + 3] = color.a;
             }
         } else {
             layerData[i] = color.r;
@@ -425,5 +430,16 @@ export class ProjectState {
             '#be1250', '#ff6c24', '#a8e72e', '#00b543',
             '#065ab5', '#754665', '#ff6e59', '#ff9b63',
         ];
+    }
+
+    _hexToRgba(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b, a: 255 };
+    }
+
+    _rgbaToHex(r, g, b) {
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
 }
