@@ -10,11 +10,6 @@ export class SpriteSheetExporter {
 
     /**
      * Export as sprite sheet.
-     * @param {object} options
-     * @param {number} options.scale - Scale multiplier
-     * @param {number} options.columns - Columns in the grid (0 = horizontal strip)
-     * @param {number} options.padding - Padding between frames
-     * @param {boolean} options.includeJson - Export JSON metadata
      */
     export(options = {}) {
         const {
@@ -37,6 +32,8 @@ export class SpriteSheetExporter {
         sheetCanvas.width = sheetW;
         sheetCanvas.height = sheetH;
         const ctx = sheetCanvas.getContext('2d');
+        
+        // CRITICAL: Prevent blurriness for pixel art scaling
         ctx.imageSmoothingEnabled = false;
 
         const tempCanvas = document.createElement('canvas');
@@ -52,6 +49,8 @@ export class SpriteSheetExporter {
             const y = row * (fh + padding);
 
             this.renderer.renderFrameToCanvas(frame, tempCanvas, true);
+            
+            // Draw scaled frame
             ctx.drawImage(tempCanvas, x, y, fw, fh);
 
             frameData.push({
@@ -59,88 +58,88 @@ export class SpriteSheetExporter {
                 x, y,
                 width: fw,
                 height: fh,
-                duration: frame.duration || Math.round(1000 / fps),
+                duration: frame.duration || Math.round(1000 / (fps || 12)),
             });
         });
 
-        // Download PNG
-        sheetCanvas.toBlob((blob) => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pixel-animator-spritesheet.png';
-            a.click();
-            URL.revokeObjectURL(url);
-        }, 'image/png');
+        this._downloadBlob(sheetCanvas, 'pixel-animator-spritesheet.png', 'image/png');
 
-        // Download JSON metadata
         if (includeJson) {
             const meta = {
                 image: 'pixel-animator-spritesheet.png',
                 frameWidth: fw,
                 frameHeight: fh,
                 frameCount: frames.length,
-                fps,
+                fps: fps || 12,
                 columns: cols,
                 rows,
                 padding,
                 frames: frameData,
             };
             const jsonBlob = new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(jsonBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pixel-animator-spritesheet.json';
-            a.click();
-            URL.revokeObjectURL(url);
+            this._triggerDownload(URL.createObjectURL(jsonBlob), 'pixel-animator-spritesheet.json');
         }
     }
 
     /**
-     * Export tiles — automatically slice into 16x16 or 32x32 tiles.
-     * @param {object} options
-     * @param {number} options.tileSize - 16 or 32
+     * Export tiles — Modified to export a single Tile Set image to prevent 
+     * browser download blocking and UI freezing.
      */
     exportTiles(options = {}) {
         const { tileSize = 16 } = options;
         const { canvasWidth, canvasHeight, frames } = this.state;
 
         if (canvasWidth % tileSize !== 0 || canvasHeight % tileSize !== 0) {
-            alert(`Canvas must be divisible by ${tileSize} for tile export.`);
+            alert(`Canvas (${canvasWidth}x${canvasHeight}) must be divisible by tile size ${tileSize}.`);
             return;
         }
 
         const tilesX = canvasWidth / tileSize;
         const tilesY = canvasHeight / tileSize;
+        const totalTilesPerFrame = tilesX * tilesY;
+        
+        // Prepare a canvas to hold ALL tiles from ALL frames in a grid
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = tilesX * tileSize;
+        exportCanvas.height = (tilesY * frames.length) * tileSize;
+        const ctx = exportCanvas.getContext('2d');
+        
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvasWidth;
+        tempCanvas.height = canvasHeight;
 
         frames.forEach((frame, frameIndex) => {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvasWidth;
-            tempCanvas.height = canvasHeight;
             this.renderer.renderFrameToCanvas(frame, tempCanvas, true);
-
-            for (let ty = 0; ty < tilesY; ty++) {
-                for (let tx = 0; tx < tilesX; tx++) {
-                    const tileCanvas = document.createElement('canvas');
-                    tileCanvas.width = tileSize;
-                    tileCanvas.height = tileSize;
-                    const tctx = tileCanvas.getContext('2d');
-                    tctx.drawImage(
-                        tempCanvas,
-                        tx * tileSize, ty * tileSize, tileSize, tileSize,
-                        0, 0, tileSize, tileSize
-                    );
-
-                    tileCanvas.toBlob((blob) => {
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `tile_f${frameIndex}_x${tx}_y${ty}.png`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    }, 'image/png');
-                }
-            }
+            
+            // Draw this frame's tiles into the master tile sheet
+            const offsetY = frameIndex * (tilesY * tileSize);
+            ctx.drawImage(tempCanvas, 0, offsetY);
         });
+
+        this._downloadBlob(exportCanvas, 'project-tileset.png', 'image/png');
+        console.log(`Exported ${frames.length} frames sliced into ${tileSize}px tiles.`);
+    }
+
+    /**
+     * Internal helper to handle blob generation and downloading
+     */
+    _downloadBlob(canvas, filename, type) {
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            this._triggerDownload(url, filename);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }, type);
+    }
+
+    /**
+     * Internal helper to trigger the anchor click
+     */
+    _triggerDownload(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a); // Required for some browsers
+        a.click();
+        document.body.removeChild(a);
     }
 }
